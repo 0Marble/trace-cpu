@@ -2,10 +2,6 @@
 
 #include <iostream>
 
-#define LOG_RED "\033[31m"
-#define LOG_GREEN "\033[32m"
-#define LOG_WHITE "\033[0m"
-
 #define STRINGIZE2(x) #x
 #define STRINGIZE(x) STRINGIZE2(x)
 #define SRC_HERE "[" __FILE_NAME__ ":" STRINGIZE(__LINE__) "]"
@@ -29,3 +25,24 @@ template <class... Args> void log(LogLevel lvl, const char *src, Args... args) {
   log_rec(args...);
   std::cerr << std::endl;
 }
+
+#define ASSERT(cond, ...)                                                      \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      LOG(LogLevel::LOG_ERROR, "assertion failed: " #cond "\n\t",              \
+          ##__VA_ARGS__);                                                      \
+      std::exit(1);                                                            \
+    }                                                                          \
+  } while (0)
+
+#define TODO(...)                                                              \
+  do {                                                                         \
+    LOG(LogLevel::LOG_ERROR, "TODO:", ##__VA_ARGS__);                          \
+    std::exit(1);                                                              \
+  } while (0)
+
+#define UNREACHABLE(...)                                                       \
+  do {                                                                         \
+    LOG(LogLevel::LOG_ERROR, "UNREACHABLE:", ##__VA_ARGS__);                   \
+    std::exit(1);                                                              \
+  } while (0)
