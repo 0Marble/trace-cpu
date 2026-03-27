@@ -1,4 +1,4 @@
-#include "log.h"
+#include "Log.h"
 
 std::ostream &operator<<(std::ostream &out, LogLevel lvl) {
   switch (lvl) {

@@ -1,5 +1,5 @@
-#include "geometry.h"
-#include "transform.h"
+#include "Geometry.h"
+#include "Transform.h"
 
 bool AABB::contains(glm::vec3 point) const {
   bool x = point.x >= pos.x && point.x < pos.x + size.x;

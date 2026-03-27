@@ -1,8 +1,6 @@
-#include "sphere.h"
-#include "geometry.h"
+#include "Sphere.h"
 #include "glm/ext/scalar_common.hpp"
 #include "glm/geometric.hpp"
-#include "ray.h"
 #include <cmath>
 
 std::optional<float> intersectT(Ray ray) {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "geometry.h"
-#include "material.h"
-#include "transform.h"
+#include "Geometry.h"
+#include "Material.h"
+#include "Transform.h"
 #include <memory>
 
 class Object {
