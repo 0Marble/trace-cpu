@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Material.h"
-#include "Random.h"
+#include <glm/glm.hpp>
 
-class BlinnPhongMaterial : public Material {
-  glm::vec3 diffuse, specular;
-  float shininess;
+class DiffuseLightMaterial : public Material {
+  glm::vec3 color = {1.0f, 1.0f, 1.0f};
 
 public:
   glm::vec3 sampleReflectedDir(Random &rng, glm::vec3 incoming, glm::vec2 uv,

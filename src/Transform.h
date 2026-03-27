@@ -12,6 +12,7 @@ public:
   template <class T> T apply(T &object);
 
   glm::mat4 asMat() const;
+  glm::mat4 asInv() const;
   InstantTransform inverse() const;
 };
 

@@ -3,6 +3,7 @@
 #include "Geometry.h"
 #include "Material.h"
 #include "Transform.h"
+#include <cstddef>
 #include <memory>
 
 class Object {
