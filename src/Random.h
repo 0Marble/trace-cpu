@@ -1,3 +1,8 @@
 #pragma once
 
-class Random {};
+#include <glm/glm.hpp>
+
+class Random {
+public:
+  virtual glm::vec3 hemisphereUniform();
+};
