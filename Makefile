@@ -1,30 +1,21 @@
-
 BUILD_DIR:=build
-SRC_DIR:=src
+EXE=$(BUILD_DIR)/trace
 
-SRC_FILES:=$(wildcard $(SRC_DIR)/*.cpp)
-H_FILES:=$(wildcard $(SRC_DIR)/*.h)
-OBJ_FILES:=$(SRC_FILES:%.cpp=$(BUILD_DIR)/%.o)
+CFLAGS:=-fPIC -Wall -Wextra -ggdb -fsanitize=address -fsanitize=undefined
 
-EXE:=$(BUILD_DIR)/bin/trace
+.PHONY: run
+run: $(EXE)
+	$(EXE)
 
-OBJS:=$(EXE)
-
-CXXFLAGS:=-x c++ -fPIC -Wextra -Wall -ggdb -fsanitize=address -fsanitize=undefined
-LINK_FLAGS:=-lasan -lubsan
-CC:=g++
-
-.PHONY: build
-build: $(OBJS)
+.PHONY: configure
+configure:
+	cmake -S . -B $(BUILD_DIR) -DCMAKE_CXX_FLAGS="$(CFLAGS)"
+	cp $(BUILD_DIR)/compile_commands.json .
 
 .PHONY: build
+build:
+	cmake --build $(BUILD_DIR)
+
+.PHONY: clean
 clean:
 	rm -rf $(BUILD_DIR)
-
-$(BUILD_DIR)/%.o: %.cpp
-	mkdir -p $(dir $@)
-	$(CC) -c $(CXXFLAGS) -o $@ $^ -I .
-
-$(EXE): $(OBJ_FILES) $(H_FILES)
-	mkdir -p $(dir $@)
-	$(CC) -o $@ $^ $(LINK_FLAGS)
