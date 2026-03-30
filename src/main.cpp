@@ -2,6 +2,7 @@
 
 #include "BlinnPhongMaterial.h"
 #include "Log.h"
+#include "PointLight.h"
 #include "Random.h"
 #include "Raytracer.h"
 #include "Scene.h"
@@ -56,12 +57,12 @@ void render(Raytracer &rt, std::size_t w, std::size_t h,
   std::size_t total_work = (x_tiles + 1) * (y_tiles + 1);
   std::size_t progress = 0;
 
-  // #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (std::size_t i = 0; i <= x_tiles; i++) {
     for (std::size_t j = 0; j <= y_tiles; j++) {
       renderTile(rt, w, h, samples, i, j, pixels);
 
-      // #pragma omp critical
+#pragma omp critical
       {
         progress += 1;
         LOG(LogLevel::LOG_INFO, progress, "/", total_work);
@@ -74,7 +75,7 @@ void render(Raytracer &rt, std::size_t w, std::size_t h,
 }
 
 int main() {
-  // LOG(LogLevel::LOG_INFO, "running on", omp_get_num_procs(), "omp threads");
+  LOG(LogLevel::LOG_INFO, "running on", omp_get_num_procs(), "omp threads");
 
   auto raytracer = Raytracer();
   raytracer.rng = std::make_shared<Random>();
@@ -87,6 +88,17 @@ int main() {
       .transform = std::make_shared<InstantTransform>(
           glm::vec3(0, 0, -3), glm::vec3(1), glm::quat(1, 0, 0, 0)),
   });
+
+  raytracer.scene->addObject({
+      .geometry = std::make_shared<Sphere>(),
+      .material = std::make_shared<BlinnPhongMaterial>(
+          glm::vec3(0.5, 0.5, 0.0), glm::vec3(1.0, 0.0, 0.0), 1.0),
+      .transform = std::make_shared<InstantTransform>(
+          glm::vec3(0, -1, -3), glm::vec3(5, 1, 5), glm::quat(1, 0, 0, 0)),
+  });
+
+  raytracer.scene->addLight(
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(3, 3, 3)));
 
   render(raytracer, 100, 100, 1);
 

@@ -12,10 +12,9 @@ BlinnPhongMaterial::BlinnPhongMaterial(glm::vec3 diffuse, glm::vec3 specular,
 glm::vec3 BlinnPhongMaterial::sampleReflectedDir(Random &rng,
                                                  glm::vec3 incoming,
                                                  glm::vec2 uv, float time) {
-  // (void)time;
-  // (void)incoming;
-  // (void)uv;
-  // return rng.hemisphereUniform();
+  (void)time;
+  (void)uv;
+  (void)rng;
 
   glm::vec3 normal = {0, 0, 1};
   return glm::reflect(incoming, normal);
