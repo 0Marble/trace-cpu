@@ -1,13 +1,17 @@
 #include "Triangle.h"
+#include "Geometry.h"
+#include "Log.h"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 #include <optional>
 
 static const float epsilon = 1e-5;
 
+Triangle::Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c) : points({a, b, c}) {}
+
 std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) {
   glm::vec3 e1 = points[1] - points[0];
-  glm::vec3 e2 = points[1] - points[0];
+  glm::vec3 e2 = points[2] - points[0];
   glm::vec3 n = glm::cross(e1, e2);
 
   if (glm::dot(n, ray.dir) > 0)
@@ -44,15 +48,17 @@ std::optional<Collision> Triangle::intersect(Ray ray) {
   glm::vec4 uvwt = maybe.value();
 
   glm::vec3 e1 = points[1] - points[0];
-  glm::vec3 e2 = points[1] - points[0];
-  glm::vec3 n = glm::cross(e1, e2);
+  glm::vec3 e2 = points[2] - points[0];
+  glm::vec3 n = glm::normalize(glm::cross(e1, e2));
 
   return (Collision){
       .ray = ray,
-      .t = uvwt.t,
+      .t = uvwt.w,
       .uv = glm::vec2(uvwt.x, uvwt.y),
       .normal = n,
-      .tangent = e1,
-      .pos = uvwt.x * points[0] + uvwt.y * points[1] + uvwt.z * points[2],
+      .tangent = glm::normalize(e1),
+      .pos = uvwt.z * points[0] + uvwt.x * points[1] + uvwt.y * points[2],
   };
 }
+
+AABB Triangle::aabb() { TODO("unimplemented"); }

@@ -3,11 +3,10 @@
 #include "glm/geometric.hpp"
 #include "glm/gtc/constants.hpp"
 #include <cmath>
-#include <limits>
 
 static const float epsilon = 1e-5;
 
-std::optional<float> intersectT(Ray ray) {
+std::optional<float> Sphere::intersectT(Ray ray) {
   // x^2+y^2+z^2 = 1
   // o + td = (x, y, z)
   // <o + td, o + td> = 1

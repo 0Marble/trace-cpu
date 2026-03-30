@@ -26,6 +26,7 @@ public:
 
 class Geometry {
 public:
+  virtual ~Geometry();
   virtual std::optional<Collision> intersect(Ray ray) = 0;
   virtual AABB aabb() = 0;
 };

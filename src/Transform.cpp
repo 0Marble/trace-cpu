@@ -3,9 +3,10 @@
 #include "glm/ext/quaternion_common.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
 
-InstantTransform::InstantTransform(glm::vec3 translation,
-                                   glm::vec3 scale = glm::vec3(1.0f),
-                                   glm::quat rotation = glm::quat())
+InstantTransform::InstantTransform() {}
+
+InstantTransform::InstantTransform(glm::vec3 translation, glm::vec3 scale,
+                                   glm::quat rotation)
     : translation(translation), scale(scale), rotation(rotation) {}
 
 glm::mat4 InstantTransform::asMat() const {

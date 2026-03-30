@@ -37,3 +37,5 @@ template <> AABB InstantTransform::apply<AABB>(AABB &aabb) {
 
   return {.pos = a, .size = b - a};
 }
+
+Geometry::~Geometry() {}

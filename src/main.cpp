@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <omp.h>
 
 #include "BlinnPhongMaterial.h"
@@ -11,6 +12,7 @@
 #include <memory>
 
 #include "../vendor/stb_image_write.h"
+#include "Triangle.h"
 
 static const std::size_t tile_size = 32;
 void renderTile(Raytracer &rt, std::size_t w, std::size_t h,
@@ -57,12 +59,17 @@ void render(Raytracer &rt, std::size_t w, std::size_t h,
   std::size_t total_work = (x_tiles + 1) * (y_tiles + 1);
   std::size_t progress = 0;
 
+#ifdef PARALLEL
 #pragma omp parallel for collapse(2)
+#endif
+
   for (std::size_t i = 0; i <= x_tiles; i++) {
     for (std::size_t j = 0; j <= y_tiles; j++) {
       renderTile(rt, w, h, samples, i, j, pixels);
 
+#ifdef PARALLEL
 #pragma omp critical
+#endif
       {
         progress += 1;
         LOG(LogLevel::LOG_INFO, progress, "/", total_work);
@@ -74,6 +81,15 @@ void render(Raytracer &rt, std::size_t w, std::size_t h,
   ASSERT(res);
 }
 
+static glm::vec3 quad[] = {
+    glm::vec3(-1, -1, 0),
+    glm::vec3(1, -1, 0),
+    glm::vec3(1, 1, 0),
+    glm::vec3(-1, 1, 0),
+};
+
+static int inds[] = {0, 1, 2, 0, 2, 3};
+
 int main() {
   LOG(LogLevel::LOG_INFO, "running on", omp_get_num_procs(), "omp threads");
 
@@ -81,24 +97,49 @@ int main() {
   raytracer.rng = std::make_shared<Random>();
   raytracer.scene = std::make_shared<Scene>();
 
-  raytracer.scene->addObject({
-      .geometry = std::make_shared<Sphere>(),
-      .material = std::make_shared<BlinnPhongMaterial>(
-          glm::vec3(0.5, 0.0, 0.0), glm::vec3(1.0, 0.0, 0.0), 1.0),
-      .transform = std::make_shared<InstantTransform>(
-          glm::vec3(0, 0, -3), glm::vec3(1), glm::quat(1, 0, 0, 0)),
-  });
+  auto green = std::make_shared<BlinnPhongMaterial>(glm::vec3(0.1, 1.0, 0.1),
+                                                    glm::vec3(0.0), 0);
+  auto red = std::make_shared<BlinnPhongMaterial>(glm::vec3(1.0, 0.1, 0.1),
+                                                  glm::vec3(0.0), 0);
+  auto blue = std::make_shared<BlinnPhongMaterial>(glm::vec3(0.1, 0.1, 1.0),
+                                                   glm::vec3(0.0), 0);
+  auto white =
+      std::make_shared<BlinnPhongMaterial>(glm::vec3(1), glm::vec3(0), 0);
+
+  auto back = std::make_shared<InstantTransform>(glm::vec3(0, 0, -4));
+  auto bot = std::make_shared<InstantTransform>(
+      glm::vec3(0, -1, -3), glm::vec3(1),
+      glm::quat(0.7071068, -0.7071068, 0, 0));
+  auto left =
+      std::make_shared<InstantTransform>(glm::vec3(-1, 0, -3), glm::vec3(1),
+                                         glm::quat(0.7071068, 0, 0.7071068, 0));
+  auto sphere = std::make_shared<InstantTransform>(glm::vec3(0, -0.5, -3),
+                                                   glm::vec3(0.5f));
+
+  std::vector<std::shared_ptr<Triangle>> tris = {};
+  for (size_t i = 0; i < sizeof(inds) / sizeof(inds[0]); i += 3) {
+    auto tri = std::make_shared<Triangle>(quad[inds[i]], quad[inds[i + 1]],
+                                          quad[inds[i + 2]]);
+    tris.push_back(std::move(tri));
+  }
+
+  for (auto &tri : tris) {
+    raytracer.scene->addObject(
+        {.geometry = tri, .material = blue, .transform = bot});
+    raytracer.scene->addObject(
+        {.geometry = tri, .material = green, .transform = back});
+    raytracer.scene->addObject(
+        {.geometry = tri, .material = red, .transform = left});
+  }
 
   raytracer.scene->addObject({
       .geometry = std::make_shared<Sphere>(),
-      .material = std::make_shared<BlinnPhongMaterial>(
-          glm::vec3(0.5, 0.5, 0.0), glm::vec3(1.0, 0.0, 0.0), 1.0),
-      .transform = std::make_shared<InstantTransform>(
-          glm::vec3(0, -1, -3), glm::vec3(5, 1, 5), glm::quat(1, 0, 0, 0)),
+      .material = white,
+      .transform = sphere,
   });
 
   raytracer.scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(3, 3, 3)));
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 3, -2)));
 
   render(raytracer, 100, 100, 1);
 

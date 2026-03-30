@@ -11,11 +11,13 @@ public:
 
 class InstantTransform : public Transform {
 public:
-  glm::vec3 translation;
-  glm::vec3 scale;
-  glm::quat rotation;
+  glm::vec3 translation = {0, 0, 0};
+  glm::vec3 scale = {1, 1, 1};
+  glm::quat rotation = {1, 0, 0, 0};
 
-  InstantTransform(glm::vec3 translation, glm::vec3 scale, glm::quat rotation);
+  InstantTransform();
+  InstantTransform(glm::vec3 translation, glm::vec3 scale = glm::vec3(1),
+                   glm::quat rotation = {1, 0, 0, 0});
 
   template <class T> T apply(T &object);
   template <class T> T applyInv(T &object) { return inverse().apply(object); }
@@ -24,5 +26,5 @@ public:
   glm::mat4 asInv() const;
   InstantTransform inverse() const;
 
-  InstantTransform sample(float time);
+  InstantTransform sample(float time) override;
 };
