@@ -3,6 +3,11 @@
 #include "glm/ext/quaternion_common.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
 
+InstantTransform::InstantTransform(glm::vec3 translation,
+                                   glm::vec3 scale = glm::vec3(1.0f),
+                                   glm::quat rotation = glm::quat())
+    : translation(translation), scale(scale), rotation(rotation) {}
+
 glm::mat4 InstantTransform::asMat() const {
   glm::mat4 res = glm::scale(glm::mat4(1.0f), scale);
   res = glm::rotate(res, glm::angle(rotation), glm::axis(rotation));
@@ -14,8 +19,10 @@ glm::mat4 InstantTransform::asInv() const { return inverse().asMat(); }
 
 InstantTransform InstantTransform::inverse() const {
   return {
-      .translation = -translation,
-      .scale = 1.0f / scale,
-      .rotation = glm::inverse(rotation),
+      -translation,
+      1.0f / scale,
+      glm::inverse(rotation),
   };
 }
+
+InstantTransform InstantTransform::sample(float) { return *this; }

@@ -4,10 +4,12 @@
 #include "Random.h"
 
 class BlinnPhongMaterial : public Material {
+public:
   glm::vec3 diffuse, specular;
   float shininess;
 
-public:
+  BlinnPhongMaterial(glm::vec3 diffuse, glm::vec3 specular, float shininess);
+
   glm::vec3 sampleReflectedDir(Random &rng, glm::vec3 incoming, glm::vec2 uv,
                                float time) override;
   glm::vec3 sampleColor(Random &rng, glm::vec3 to_light, glm::vec3 to_view,

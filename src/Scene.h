@@ -13,5 +13,7 @@ class Scene {
 public:
   using Intersection = std::pair<Collision, Object *>;
 
+  void addObject(Object);
+
   std::optional<Intersection> intersect(Ray ray);
 };

@@ -1,8 +1,11 @@
 #include "Sphere.h"
-#include "glm/ext/scalar_common.hpp"
+#include "Log.h"
 #include "glm/geometric.hpp"
 #include "glm/gtc/constants.hpp"
 #include <cmath>
+#include <limits>
+
+static const float epsilon = 1e-5;
 
 std::optional<float> intersectT(Ray ray) {
   // x^2+y^2+z^2 = 1
@@ -10,19 +13,21 @@ std::optional<float> intersectT(Ray ray) {
   // <o + td, o + td> = 1
   // <o, o> + 2t<o, d> + t^2<d, d> = 1
 
-  float a = glm::dot(ray.origin, ray.origin) - 1.0f;
+  float c = glm::dot(ray.origin, ray.origin) - 1.0f;
   float b = 2.0f * glm::dot(ray.origin, ray.dir);
-  float c = glm::dot(ray.dir, ray.dir);
+  float a = glm::dot(ray.dir, ray.dir);
 
-  if (a == 0.0) {
+  if (c == 0.0) {
     // NOTE:
     // we are probably not interested in t=0, since it would cause
     // self-intersection.
 
     if (b == 0.0)
       return {};
-
-    return c / b;
+    float t = -b / a;
+    if (t <= epsilon)
+      return {};
+    return t;
   }
 
   float d = b * b - 4.0f * a * c;
@@ -31,12 +36,12 @@ std::optional<float> intersectT(Ray ray) {
   }
   float d_sqrt = std::sqrt(d);
 
-  float t1 = (-b - d_sqrt) / (2.0f * a);
-  float t2 = (-b + d_sqrt) / (2.0f * a);
-  float t = glm::fmax(t1, t2, 0.0f);
-
-  if (t < 0.0)
-    return {};
+  float t = (-b - d_sqrt) / (2.0f * a);
+  if (t <= epsilon) {
+    t = (-b + d_sqrt) / (2.0f * a);
+    if (t <= epsilon)
+      return {};
+  }
 
   return t;
 }
@@ -47,6 +52,7 @@ std::optional<Collision> Sphere::intersect(Ray ray) {
   if (!maybe_t)
     return {};
   float t = maybe_t.value();
+  ASSERT(t > 0);
 
   glm::vec3 pos = ray.at(t);
   float u = glm::one_over_two_pi<float>() * std::atan2(pos.y, pos.x);

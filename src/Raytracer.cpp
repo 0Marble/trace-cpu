@@ -13,7 +13,7 @@ struct Step {
 };
 
 glm::vec3 Raytracer::trace(Ray ray) {
-  static const std::size_t bounce_cnt = 10;
+  static const std::size_t bounce_cnt = 2;
 
   std::array<Step, bounce_cnt> history = {};
   std::size_t cnt = 0;
@@ -26,15 +26,15 @@ glm::vec3 Raytracer::trace(Ray ray) {
 
     auto [col, obj] = collision.value();
     InstantTransform transform = obj->transform->sample(ray.time);
-    glm::mat3 to_normal =
-        glm::mat3(col.normal, col.tangent, glm::cross(col.normal, col.tangent));
+    glm::mat3 normal =
+        glm::mat3(col.tangent, glm::cross(col.normal, col.tangent), col.normal);
     Step step = {
         .col = col,
         .obj = obj,
-        .w2o = transform.asMat(),
-        .o2w = transform.asInv(),
-        .o2n = to_normal,
-        .n2o = glm::transpose(to_normal),
+        .w2o = transform.asInv(),
+        .o2w = transform.asMat(),
+        .o2n = glm::transpose(normal),
+        .n2o = normal,
     };
 
     glm::vec3 incoming = step.o2n * (step.w2o * glm::vec4(ray.dir, 0.0f));
@@ -42,32 +42,38 @@ glm::vec3 Raytracer::trace(Ray ray) {
         obj->material->sampleReflectedDir(*rng, incoming, col.uv, ray.time);
 
     ray.origin = step.o2w * glm::vec4(col.pos, 1.0f);
-    ray.dir = step.o2w * glm::vec4(step.n2o * outgoing, 0.0f);
+    ray.dir = glm::normalize(step.o2w * glm::vec4(step.n2o * outgoing, 0.0f));
 
     history[cnt] = step;
   }
 
-  glm::vec3 color = {};
+  glm::vec3 color = {1, 1, 1};
   for (std::size_t j = 0; j < cnt; j++) {
     std::size_t i = cnt - j - 1;
     Step step = history[i];
 
     glm::vec3 to_view = {};
     glm::vec3 to_light = {};
-    if (j == 0) {
-      to_light = ray.dir;
+    if (i + 1 == cnt) {
+      to_light = step.w2o * glm::vec4(ray.dir, 0);
     } else {
-      to_light = history[i + 1].col.pos - step.col.pos;
+      glm::vec4 next_pos_world =
+          history[i + 1].o2w * glm::vec4(history[i + 1].col.pos, 1);
+      glm::vec4 next_pos_obj = step.w2o * next_pos_world;
+      to_light = glm::vec3(next_pos_obj) - step.col.pos;
     }
-    to_light = step.o2n * (step.w2o * glm::vec4(to_light, 0.0f));
+    to_light = step.o2n * to_light;
 
     // TODO: assuming camera at (0,0,0)
     if (i == 0) {
-      to_view = -step.col.pos;
+      to_view = glm::vec3(step.w2o * glm::vec4(0, 0, 0, 1)) - step.col.pos;
     } else {
-      to_view = history[i - 1].col.pos - step.col.pos;
+      glm::vec4 prev_pos_world =
+          history[i - 1].o2w * glm::vec4(history[i - 1].col.pos, 1);
+      glm::vec4 prev_pos_obj = step.w2o * prev_pos_world;
+      to_view = glm::vec3(prev_pos_obj) - step.col.pos;
     }
-    to_view = step.o2n * (step.w2o * glm::vec4(to_view, 0.0f));
+    to_view = step.o2n * to_view;
 
     color = step.obj->material->sampleColor(*rng, to_light, to_view, color,
                                             step.col.uv, ray.time);

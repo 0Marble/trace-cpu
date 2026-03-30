@@ -5,13 +5,20 @@
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 
+BlinnPhongMaterial::BlinnPhongMaterial(glm::vec3 diffuse, glm::vec3 specular,
+                                       float shininess)
+    : diffuse(diffuse), specular(specular), shininess(shininess) {}
+
 glm::vec3 BlinnPhongMaterial::sampleReflectedDir(Random &rng,
                                                  glm::vec3 incoming,
                                                  glm::vec2 uv, float time) {
-  (void)incoming;
-  (void)uv;
-  (void)time;
-  return rng.hemisphereUniform();
+  // (void)time;
+  // (void)incoming;
+  // (void)uv;
+  // return rng.hemisphereUniform();
+
+  glm::vec3 normal = {0, 0, 1};
+  return glm::reflect(incoming, normal);
 }
 
 glm::vec3 BlinnPhongMaterial::sampleColor(Random &rng, glm::vec3 to_light,
@@ -24,6 +31,8 @@ glm::vec3 BlinnPhongMaterial::sampleColor(Random &rng, glm::vec3 to_light,
 
   glm::vec3 normal = {0, 0, 1};
 
+  to_light = glm::normalize(to_light);
+  to_view = glm::normalize(to_view);
   float l = glm::max(glm::dot(to_light, normal), 0.0f);
   float s = 0.0f;
 
