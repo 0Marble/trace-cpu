@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 
 class Triangle : public Geometry {
+  std::optional<glm::vec4> intersectUVWT(Ray ray);
+
 public:
   std::array<glm::vec3, 3> points;
 
