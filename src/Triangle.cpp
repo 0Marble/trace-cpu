@@ -12,10 +12,6 @@ Triangle::Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c) : points({a, b, c}) {}
 std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) {
   glm::vec3 e1 = points[1] - points[0];
   glm::vec3 e2 = points[2] - points[0];
-  glm::vec3 n = glm::cross(e1, e2);
-
-  if (glm::dot(n, ray.dir) > 0)
-    return {};
 
   glm::vec3 dir_x_e2 = glm::cross(ray.dir, e2);
   float det = glm::dot(e1, dir_x_e2);
@@ -24,13 +20,13 @@ std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) {
 
   glm::vec3 s = ray.origin - points[0];
   float u = glm::dot(s, dir_x_e2) / det;
-  if (u < -epsilon || u - 1 > epsilon)
+  if (u < -epsilon || u - 1.0f > epsilon)
     return {};
 
   glm::vec3 s_x_e1 = glm::cross(s, e1);
   float v = glm::dot(ray.dir, s_x_e1) / det;
 
-  if (v < -epsilon || u + v - 1 > epsilon)
+  if (v < -epsilon || u + v - 1.0f > epsilon)
     return {};
 
   float t = glm::dot(e2, s_x_e1) / det;

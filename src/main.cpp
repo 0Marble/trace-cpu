@@ -9,6 +9,7 @@
 #include "Scene.h"
 #include "Sphere.h"
 #include "Transform.h"
+#include "VecFmt.h"
 #include <memory>
 
 #include "../vendor/stb_image_write.h"
@@ -32,9 +33,11 @@ void renderTile(Raytracer &rt, std::size_t w, std::size_t h,
         float v = (float)(y) / (float)(h - 1) * 2.0f - 1.0f;
 
         glm::vec3 dir = {u, v, -1};
+        // glm::vec3 dir = {u, -1, v};
         dir = glm::normalize(dir);
 
         Ray ray = {.dir = dir};
+        // Ray ray = {.origin = {0, 3, -3}, .dir = dir};
 
         color[loc_idx] += rt.trace(ray);
       }
@@ -113,8 +116,8 @@ int main() {
   auto left =
       std::make_shared<InstantTransform>(glm::vec3(-1, 0, -3), glm::vec3(1),
                                          glm::quat(0.7071068, 0, 0.7071068, 0));
-  auto sphere = std::make_shared<InstantTransform>(glm::vec3(0, -0.5, -3),
-                                                   glm::vec3(0.5f));
+  auto sphere =
+      std::make_shared<InstantTransform>(glm::vec3(0, 0, -3), glm::vec3(0.5));
 
   std::vector<std::shared_ptr<Triangle>> tris = {};
   for (size_t i = 0; i < sizeof(inds) / sizeof(inds[0]); i += 3) {
@@ -139,7 +142,7 @@ int main() {
   });
 
   raytracer.scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 3, -2)));
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 10, -3)));
 
   render(raytracer, 100, 100, 1);
 
