@@ -4,6 +4,7 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/geometric.hpp"
 #include "glm/gtc/random.hpp"
+#include <filesystem>
 #include <vector>
 
 #ifdef PARALLEL
@@ -21,7 +22,10 @@ std::vector<glm::vec2> SimplePixelSampler::sampleUvs(size_t w, size_t h,
   return std::vector<glm::vec2>(sample_cnt, glm::vec2(u, v));
 }
 
-void Frame::save(const std::string &path) {
+void Frame::save(const std::string &path_str) {
+  std::filesystem::path path(path_str);
+  std::filesystem::create_directories(path.parent_path());
+
   int res =
       stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
   ASSERT(res);

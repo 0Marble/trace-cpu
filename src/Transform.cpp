@@ -1,4 +1,5 @@
 #include "Transform.h"
+#include "Log.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/quaternion_common.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
@@ -43,4 +44,31 @@ InstantTransform InstantTransform::lookAt(glm::vec3 pos, glm::vec3 at,
                                           glm::vec3 up) {
   glm::quat rot = glm::quatLookAt(glm::normalize(at - pos), up);
   return InstantTransform(pos, glm::vec3(1), rot);
+}
+
+InstantTransform InstantTransform::lerp(InstantTransform other, float t) const {
+  ASSERT(trs == other.trs);
+
+  return InstantTransform((1.0f - t) * translation + t * other.translation,
+                          (1.0f - t) * scale + t * other.scale,
+                          glm::slerp(rotation, other.rotation, t), trs);
+}
+
+KeyframeTransform::KeyframeTransform(
+    const std::vector<InstantTransform> &keyframes, float duration)
+    : keyframes(keyframes), duration(duration) {}
+
+InstantTransform KeyframeTransform::sample(float time) {
+  float step = duration / (float)(keyframes.size() - 1);
+  size_t prev = std::floor(time / step);
+  size_t next = std::ceil(time / step);
+  float t = time - std::floor(time / step);
+  prev %= keyframes.size();
+  next %= keyframes.size();
+
+  if (prev == next) {
+    return keyframes[prev];
+  }
+
+  return keyframes[prev].lerp(keyframes[next], t);
 }

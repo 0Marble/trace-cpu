@@ -2,12 +2,13 @@
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
-#include <memory>
 
 class InstantTransform;
 class Transform {
 public:
   virtual InstantTransform sample(float time) = 0;
+
+  virtual ~Transform() = default;
 };
 
 class InstantTransform : public Transform {
@@ -30,13 +31,18 @@ public:
   glm::mat4 asInv() const;
   InstantTransform inverse() const;
 
+  InstantTransform lerp(InstantTransform other, float t) const;
+
   InstantTransform sample(float time) override;
 };
 
-class NestedTransform : public Transform {
+class KeyframeTransform : public Transform {
 public:
-  std::shared_ptr<Transform> parent;
-  std::shared_ptr<Transform> child;
+  std::vector<InstantTransform> keyframes;
+  float duration;
 
-  virtual InstantTransform sample(float time) = 0;
+  KeyframeTransform(const std::vector<InstantTransform> &keyframes,
+                    float duration = 1.0f);
+
+  InstantTransform sample(float time) override;
 };

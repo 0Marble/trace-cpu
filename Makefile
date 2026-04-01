@@ -20,3 +20,7 @@ build:
 .PHONY: clean
 clean:
 	rm -rf $(BUILD_DIR)
+
+.PHONY: video
+video:
+	ffmpeg -framerate 30 -start_number 0 -i out/frame-%d.png -c:v libx264 -pix_fmt yuv420p out.mp4

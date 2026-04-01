@@ -1,5 +1,4 @@
 
-#include "glm/gtc/quaternion.hpp"
 #ifdef PARALLEL
 #include <omp.h>
 #endif
@@ -77,12 +76,28 @@ int main() {
   auto rt = std::make_shared<Raytracer>(scene, 3);
 
   Camera cam = Camera(
-      std::make_shared<InstantTransform>(InstantTransform::lookAt(
-          glm::vec3(1, 0, 0), glm::vec3(0, 0, -3), glm::vec3(0, 1, 0))),
-      std::make_shared<SimplePixelSampler>(1), Camera::Projection{}, 100, 100);
+      std::make_shared<KeyframeTransform>(
+          std::vector<InstantTransform>{
+              InstantTransform::lookAt(glm::vec3(-1, 0, 0), glm::vec3(0, 0, -3),
+                                       glm::vec3(0, 1, 0)),
+              InstantTransform::lookAt(glm::vec3(1, 0, 0), glm::vec3(0, 0, -3),
+                                       glm::vec3(0, 1, 0)),
+          },
+          1.0f),
+      std::make_shared<SimplePixelSampler>(10), Camera::Projection{}, 1000,
+      1000);
 
-  Frame f = cam.shoot(rt, 0, 0);
-  f.save("image.png");
+  float duration = 1.0f;
+  size_t fps = 30;
+
+  size_t frame_cnt = std::ceil(duration * (float)fps);
+  float frame_dur = 1.0f / (float)fps;
+  for (size_t i = 0; i < frame_cnt; i++) {
+    float start = (float)i * frame_dur;
+    float end = (float)(i + 1) * frame_dur;
+    Frame f = cam.shoot(rt, start, end);
+    f.save("out/frame-" + std::to_string(i) + ".png");
+  }
 
   return 0;
 }
