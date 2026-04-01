@@ -1,6 +1,5 @@
 #include "Scene.h"
 #include "Light.h"
-#include "Log.h"
 #include "glm/geometric.hpp"
 #include <memory>
 
@@ -18,12 +17,7 @@ std::optional<Scene::Intersection> Scene::intersect(Ray ray) {
     Ray r = transform.applyInv(ray);
 
     auto col = obj.geometry->intersect(r);
-    if (col) {
-      col->t /= glm::length(r.dir);
-    } else {
-      continue;
-    }
-    if (!res || dist >= col->t) {
+    if (col && (!res || dist >= col->t)) {
       res = std::make_pair(col.value(), &obj);
       dist = col->t;
     }

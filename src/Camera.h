@@ -41,7 +41,12 @@ public:
          std::shared_ptr<PixelSampler> sampler, Projection projection,
          size_t width, size_t height);
 
-  Frame shoot(std::shared_ptr<Raytracer> rt, float start_time, float end_time);
+  Frame snap(std::shared_ptr<Raytracer> rt, float start_time, float end_time);
+
+  glm::vec3 sample(std::shared_ptr<Raytracer> rt, float time, float u, float v);
+
+  void record(std::shared_ptr<Raytracer> rt, const std::string &out_dir,
+              float start_time, float end_time, float fps);
 
 private:
   struct Tile {

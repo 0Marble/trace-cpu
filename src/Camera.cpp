@@ -24,7 +24,9 @@ std::vector<glm::vec2> SimplePixelSampler::sampleUvs(size_t w, size_t h,
 
 void Frame::save(const std::string &path_str) {
   std::filesystem::path path(path_str);
-  std::filesystem::create_directories(path.parent_path());
+  if (path.has_parent_path()) {
+    std::filesystem::create_directories(path.parent_path());
+  }
 
   int res =
       stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
@@ -37,8 +39,8 @@ Camera::Camera(std::shared_ptr<Transform> transform,
     : transform(transform), sampler(sampler), projection(projection),
       width(width), height(height) {}
 
-Frame Camera::shoot(std::shared_ptr<Raytracer> rt, float start_time,
-                    float end_time) {
+Frame Camera::snap(std::shared_ptr<Raytracer> rt, float start_time,
+                   float end_time) {
   Frame frame = {
       .start_time = start_time,
       .end_time = end_time,
@@ -52,6 +54,7 @@ Frame Camera::shoot(std::shared_ptr<Raytracer> rt, float start_time,
 
   std::size_t total_work = (x_tiles + 1) * (y_tiles + 1);
   std::size_t progress = 0;
+  std::size_t last_percent = 0;
 
 #ifdef PARALLEL
 #pragma omp parallel for collapse(2)
@@ -67,12 +70,33 @@ Frame Camera::shoot(std::shared_ptr<Raytracer> rt, float start_time,
 #endif
       {
         progress += 1;
-        LOG(LogLevel::LOG_INFO, progress, "/", total_work);
+        std::size_t percent = (float)progress / (float)total_work * 100.f;
+        if (percent != last_percent) {
+          LOG(LogLevel::LOG_INFO, "tile", progress, "/", total_work, "(",
+              percent, "% )");
+          last_percent = percent;
+        }
       }
     }
   }
 
   return frame;
+}
+
+glm::vec3 Camera::sample(std::shared_ptr<Raytracer> rt, float time, float u,
+                         float v) {
+
+  float aspect = (float)width / (float)height;
+  glm::mat4 proj =
+      glm::perspective(projection.fov, aspect, projection.near, projection.far);
+
+  Ray ray = {.dir = glm::vec3(u, v, 1), .time = time};
+
+  ray.origin = proj * glm::vec4(ray.origin, 1.0f);
+  ray.dir = proj * glm::vec4(ray.dir, 0.0f);
+  ray = transform->sample(time).apply(ray);
+  ray.dir = glm::normalize(ray.dir);
+  return rt->trace(ray);
 }
 
 Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
@@ -135,5 +159,21 @@ void Camera::splatTile(Frame &frame, const Tile &tile) {
       frame.pixels[4 * f_idx + 2] = tile.pixels[4 * t_idx + 2];
       frame.pixels[4 * f_idx + 3] = tile.pixels[4 * t_idx + 3];
     }
+  }
+}
+
+void Camera::record(std::shared_ptr<Raytracer> rt, const std::string &out_dir,
+                    float start_time, float end_time, float fps) {
+  float duration = end_time - start_time;
+
+  float frame_dur = 1.0f / fps;
+  size_t frame_cnt = std::ceil(duration * fps);
+
+  for (size_t i = 0; i < frame_cnt; i++) {
+    float start = (float)i * frame_dur;
+    float end = (float)(i + 1) * frame_dur;
+    Frame f = snap(rt, start, end);
+    f.save(out_dir + "/frame-" + std::to_string(i) + ".png");
+    LOG(LogLevel::LOG_INFO, "frame", i + 1, "/", frame_cnt);
   }
 }

@@ -1,8 +1,3 @@
-
-#ifdef PARALLEL
-#include <omp.h>
-#endif
-
 #include "Camera.h"
 #include "DiffuseMaterial.h"
 #include "Log.h"
@@ -12,8 +7,16 @@
 #include "Sphere.h"
 #include "Transform.h"
 #include "Triangle.h"
+#include "VecFmt.h"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/gtc/constants.hpp"
 #include <cstddef>
 #include <memory>
+#include <vector>
+
+#ifdef PARALLEL
+#include <omp.h>
+#endif
 
 static glm::vec3 quad[] = {
     glm::vec3(-1, -1, 0),
@@ -23,6 +26,25 @@ static glm::vec3 quad[] = {
 };
 
 static int inds[] = {0, 1, 2, 0, 2, 3};
+
+KeyframeTransform rotateAround(glm::vec3 center, glm::vec3 axis,
+                               glm::vec3 start, float loop_cnt, float duration,
+                               size_t sample_cnt = 100) {
+  std::vector<InstantTransform> keyframes(sample_cnt, InstantTransform());
+
+  float dt = glm::two_pi<float>() * loop_cnt / (float)(sample_cnt - 1);
+
+  for (size_t i = 0; i < sample_cnt; i++) {
+    float t = dt * (float)(i);
+    glm::mat4 rot = glm::rotate(glm::mat4(1.0), t, axis);
+    glm::vec3 pos = rot * glm::vec4(start - center, 1.0);
+    pos += center;
+    keyframes[i] = InstantTransform::lookAt(pos, center, axis);
+    LOG(LogLevel::LOG_DEBUG, VecFmt(pos));
+  }
+
+  return KeyframeTransform(keyframes, duration);
+}
 
 int main() {
 #ifdef PARALLEL
@@ -55,11 +77,12 @@ int main() {
     tris.push_back(std::move(tri));
   }
 
-  for (auto &tri : tris) {
-    scene->addObject({.geometry = tri, .material = blue, .transform = bot});
-    scene->addObject({.geometry = tri, .material = green, .transform = back});
-    scene->addObject({.geometry = tri, .material = red, .transform = left});
-  }
+  // for (auto &tri : tris) {
+  //   scene->addObject({.geometry = tri, .material = blue, .transform = bot});
+  //   scene->addObject({.geometry = tri, .material = green, .transform =
+  //   back}); scene->addObject({.geometry = tri, .material = red, .transform =
+  //   left});
+  // }
 
   scene->addObject({
       .geometry = std::make_shared<Sphere>(),
@@ -68,36 +91,24 @@ int main() {
   });
 
   scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(1.4, 0, -3)));
-
-  scene->addLight(
       std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(10, 0, -3)));
+  scene->addLight(
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 0, -13)));
+  scene->addLight(
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(-10, 0, -3)));
+  scene->addLight(
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 0, 7)));
 
   auto rt = std::make_shared<Raytracer>(scene, 3);
 
-  Camera cam = Camera(
-      std::make_shared<KeyframeTransform>(
-          std::vector<InstantTransform>{
-              InstantTransform::lookAt(glm::vec3(-1, 0, 0), glm::vec3(0, 0, -3),
-                                       glm::vec3(0, 1, 0)),
-              InstantTransform::lookAt(glm::vec3(1, 0, 0), glm::vec3(0, 0, -3),
-                                       glm::vec3(0, 1, 0)),
-          },
-          1.0f),
-      std::make_shared<SimplePixelSampler>(10), Camera::Projection{}, 1000,
-      1000);
+  auto cam_path = std::make_shared<OrbitTransform>(
+      glm::vec3(0, 0, -3), glm::vec3(0), glm::vec3(0, 1, 0), 1.0f);
 
-  float duration = 1.0f;
-  size_t fps = 30;
+  Camera cam = Camera(cam_path, std::make_shared<SimplePixelSampler>(2),
+                      Camera::Projection{}, 300, 300);
 
-  size_t frame_cnt = std::ceil(duration * (float)fps);
-  float frame_dur = 1.0f / (float)fps;
-  for (size_t i = 0; i < frame_cnt; i++) {
-    float start = (float)i * frame_dur;
-    float end = (float)(i + 1) * frame_dur;
-    Frame f = cam.shoot(rt, start, end);
-    f.save("out/frame-" + std::to_string(i) + ".png");
-  }
+  // cam.snap(rt, 0, 0).save("image.png");
+  cam.record(rt, "out", 0, 2, 30);
 
   return 0;
 }

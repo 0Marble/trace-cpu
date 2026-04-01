@@ -46,3 +46,16 @@ public:
 
   InstantTransform sample(float time) override;
 };
+
+class OrbitTransform : public Transform {
+public:
+  glm::vec3 center;
+  glm::vec3 start;
+  glm::vec3 axis;
+  float angular_velocity;
+
+  OrbitTransform(glm::vec3 center, glm::vec3 start, glm::vec3 axis,
+                 float rot_per_sec);
+
+  InstantTransform sample(float time) override;
+};

@@ -48,7 +48,7 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
     float pdf = obj->material->pdf(col.uv, ray.time, to_view_n, to_light_n);
     direct_light +=
         obj->material->bsdf(col.uv, ray.time, to_view_n, to_light_n) *
-        light_color.value() * pdf * std::fabs(to_light_n.z);
+        light_color.value() * pdf * std::max(to_light_n.z, 0.0f);
     w += pdf;
 
     black = false;
@@ -63,7 +63,7 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
     ray.dir = glm::normalize(o2w * glm::vec4(n2o * to_obj_n, 0.0f));
 
     glm::vec3 obj_light = traceRec(ray, bounce + 1);
-    indirect_light += obj_light * bsdf * pdf * std::fabs(to_obj_n.z);
+    indirect_light += obj_light * bsdf * pdf * std::max(to_obj_n.z, 0.0f);
     w += pdf;
 
     black = false;

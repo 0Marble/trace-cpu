@@ -46,6 +46,9 @@ std::optional<Collision> Triangle::intersect(Ray ray) {
   glm::vec3 e1 = points[1] - points[0];
   glm::vec3 e2 = points[2] - points[0];
   glm::vec3 n = glm::normalize(glm::cross(e1, e2));
+  if (glm::dot(n, ray.dir) > 0) {
+    n *= -1;
+  }
 
   return (Collision){
       .ray = ray,
