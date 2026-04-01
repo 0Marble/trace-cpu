@@ -1,12 +1,13 @@
+#include <cmath>
 #include <cstddef>
 #include <omp.h>
 
+#include "DiffuseMaterial.h"
 #include "Log.h"
 #include "PointLight.h"
 #include "Random.h"
 #include "Raytracer.h"
 #include "Scene.h"
-#include "SimpleMaterial.h"
 #include "Sphere.h"
 #include "Transform.h"
 #include <memory>
@@ -27,19 +28,26 @@ void renderTile(Raytracer &rt, std::size_t w, std::size_t h,
       std::size_t loc_idx =
           (y - j * tile_size) * tile_size + (x - i * tile_size);
 
+      float u = (float)(x) / (float)(w - 1) * 2.0f - 1.0f;
+      float v = (float)(y) / (float)(h - 1) * 2.0f - 1.0f;
+
+      glm::vec3 dir = {u, v, -1};
+      // glm::vec3 dir = {u, -1, v};
+      dir = glm::normalize(dir);
+
+      Ray ray = {.dir = dir};
+      // Ray ray = {.origin = {0, 3, -3}, .dir = dir};
+
       for (std::size_t k = 0; k < samples; k++) {
-        float u = (float)(x) / (float)(w - 1) * 2.0f - 1.0f;
-        float v = (float)(y) / (float)(h - 1) * 2.0f - 1.0f;
-
-        glm::vec3 dir = {u, v, -1};
-        // glm::vec3 dir = {u, -1, v};
-        dir = glm::normalize(dir);
-
-        Ray ray = {.dir = dir};
-        // Ray ray = {.origin = {0, 3, -3}, .dir = dir};
-
-        color[loc_idx] += rt.trace(ray);
+        color[loc_idx] += glm::clamp(rt.trace(ray), glm::vec3(0), glm::vec3(1));
       }
+
+      ASSERT(std::isfinite(color[loc_idx].x), "tile [", i, ",", j, "] pix [", x,
+             ",", y, "]");
+      ASSERT(std::isfinite(color[loc_idx].y), "tile [", i, ",", j, "] pix [", x,
+             ",", y, "]");
+      ASSERT(std::isfinite(color[loc_idx].z), "tile [", i, ",", j, "] pix [", x,
+             ",", y, "]");
 
       glm::vec3 avg_color = glm::clamp(color[loc_idx] / (float)samples,
                                        glm::vec3(0), glm::vec3(1));
@@ -99,10 +107,10 @@ int main() {
   raytracer.rng = std::make_shared<Random>();
   raytracer.scene = std::make_shared<Scene>();
 
-  auto green = std::make_shared<SimpleMaterial>(glm::vec3(0.1, 1.0, 0.1));
-  auto red = std::make_shared<SimpleMaterial>(glm::vec3(1.0, 0.1, 0.1));
-  auto blue = std::make_shared<SimpleMaterial>(glm::vec3(0.1, 0.1, 1.0));
-  auto white = std::make_shared<SimpleMaterial>(glm::vec3(1));
+  auto green = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 1.0, 0.1));
+  auto red = std::make_shared<DiffuseMaterial>(glm::vec3(1.0, 0.1, 0.1));
+  auto blue = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 0.1, 1.0));
+  auto white = std::make_shared<DiffuseMaterial>(glm::vec3(1));
 
   auto back = std::make_shared<InstantTransform>(glm::vec3(0, 0, -4));
   auto bot = std::make_shared<InstantTransform>(
@@ -139,7 +147,7 @@ int main() {
   raytracer.scene->addLight(
       std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 10, -3)));
 
-  render(raytracer, 100, 100, 1);
+  render(raytracer, 100, 100, 10);
 
   return 0;
 }

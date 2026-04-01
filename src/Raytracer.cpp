@@ -1,4 +1,5 @@
 #include "Raytracer.h"
+#include "Log.h"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 #include "glm/matrix.hpp"
@@ -23,6 +24,9 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
   ray.origin = o2w * glm::vec4(col.pos, 1.0f);
 
   glm::vec3 direct_light = glm::vec3(0);
+  float w = 0.0f;
+  bool black = true;
+
   for (auto &light : scene->lights) {
     glm::vec3 light_pos_w = light->worldPos(ray.time);
     ray.dir = glm::normalize(light_pos_w - ray.origin);
@@ -38,23 +42,36 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
     glm::vec3 to_light_n = o2n * (w2o * glm::vec4(ray.dir, 0));
 
     // TODO: attenuation? same as below
+    float pdf = obj->material->pdf(col.uv, ray.time, to_view_n, to_light_n);
     direct_light +=
-        obj->material->bsdf(col.uv, to_view_n, to_light_n, ray.time) *
-        light_color.value() * std::fabs(to_light_n.z);
+        obj->material->bsdf(col.uv, ray.time, to_view_n, to_light_n) *
+        light_color.value() * pdf * std::fabs(to_light_n.z);
+    w += pdf;
+
+    black = false;
   }
 
   glm::vec3 indirect_light = glm::vec3(0);
   if (bounce != bounce_cnt) {
-    glm::vec3 to_obj_n = glm::reflect(to_view_n, glm::vec3(0, 0, 1));
+    float pdf = 0.0f;
+    glm::vec3 bsdf = glm::vec3(0.0f);
+    glm::vec3 to_obj_n =
+        obj->material->sample(col.uv, ray.time, to_view_n, pdf, bsdf);
     ray.dir = glm::normalize(o2w * glm::vec4(n2o * to_obj_n, 0.0f));
 
     glm::vec3 obj_light = traceRec(ray, bounce + 1);
-    indirect_light +=
-        obj_light * obj->material->bsdf(col.uv, to_view_n, to_obj_n, ray.time) *
-        std::fabs(to_obj_n.z);
+    indirect_light += obj_light * bsdf * pdf * std::fabs(to_obj_n.z);
+    w += pdf;
+
+    black = false;
   }
 
-  return direct_light + indirect_light;
+  if (black) {
+    return glm::vec3(0.0f);
+  }
+  ASSERT(w != 0.0f);
+
+  return (direct_light + indirect_light) / w;
 }
 
 glm::vec3 Raytracer::trace(Ray ray) { return traceRec(ray, 0); }

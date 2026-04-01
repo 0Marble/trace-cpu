@@ -1,7 +1,7 @@
 BUILD_DIR:=build
 EXE=$(BUILD_DIR)/trace
 
-CFLAGS:=-fPIC -Wall -Wextra -ggdb -fsanitize=address -fsanitize=undefined 
+CFLAGS:=-fPIC -Wall -Wextra -ggdb -fsanitize=address -fsanitize=undefined
 
 .PHONY: run
 run: $(EXE)
