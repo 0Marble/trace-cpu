@@ -1,15 +1,14 @@
 #include <cstddef>
 #include <omp.h>
 
-#include "BlinnPhongMaterial.h"
 #include "Log.h"
 #include "PointLight.h"
 #include "Random.h"
 #include "Raytracer.h"
 #include "Scene.h"
+#include "SimpleMaterial.h"
 #include "Sphere.h"
 #include "Transform.h"
-#include "VecFmt.h"
 #include <memory>
 
 #include "../vendor/stb_image_write.h"
@@ -100,14 +99,10 @@ int main() {
   raytracer.rng = std::make_shared<Random>();
   raytracer.scene = std::make_shared<Scene>();
 
-  auto green = std::make_shared<BlinnPhongMaterial>(glm::vec3(0.1, 1.0, 0.1),
-                                                    glm::vec3(0.0), 0);
-  auto red = std::make_shared<BlinnPhongMaterial>(glm::vec3(1.0, 0.1, 0.1),
-                                                  glm::vec3(0.0), 0);
-  auto blue = std::make_shared<BlinnPhongMaterial>(glm::vec3(0.1, 0.1, 1.0),
-                                                   glm::vec3(0.0), 0);
-  auto white =
-      std::make_shared<BlinnPhongMaterial>(glm::vec3(1), glm::vec3(0), 0);
+  auto green = std::make_shared<SimpleMaterial>(glm::vec3(0.1, 1.0, 0.1));
+  auto red = std::make_shared<SimpleMaterial>(glm::vec3(1.0, 0.1, 0.1));
+  auto blue = std::make_shared<SimpleMaterial>(glm::vec3(0.1, 0.1, 1.0));
+  auto white = std::make_shared<SimpleMaterial>(glm::vec3(1));
 
   auto back = std::make_shared<InstantTransform>(glm::vec3(0, 0, -4));
   auto bot = std::make_shared<InstantTransform>(
