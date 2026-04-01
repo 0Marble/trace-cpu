@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 4.2.1)
 
 project(trace-cpu)
+add_executable(trace)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Wextra")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb -fsanitize=address -fsanitize=undefined")
+
+message("-- ${CMAKE_BUILD_TYPE}")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -11,13 +22,21 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+option(PARALLEL "parallel" OFF)
+
+if (PARALLEL)
+    message("-- Enabled parallel support")
+    find_package(OpenMP)
+    if (OPENMP_CXX_FOUND)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	target_compile_definitions(trace PRIVATE PARALLEL)
+    else()
+	message(WARNING "could not find OpenMP, disabling parallel support")
+	set(PARALLEL OFF)
+    endif()
 endif()
 
 file(GLOB SOURCES src/*.cpp src/*.h vendor/*.h)
-add_executable(trace)
 target_sources(trace PRIVATE ${SOURCES})
 target_link_libraries(trace PRIVATE glm::glm)

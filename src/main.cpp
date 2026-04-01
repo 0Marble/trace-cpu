@@ -1,6 +1,9 @@
 #include <cmath>
 #include <cstddef>
+
+#ifdef PARALLEL
 #include <omp.h>
+#endif
 
 #include "DiffuseMaterial.h"
 #include "Log.h"
@@ -101,14 +104,18 @@ static glm::vec3 quad[] = {
 static int inds[] = {0, 1, 2, 0, 2, 3};
 
 int main() {
+#ifdef PARALLEL
   LOG(LogLevel::LOG_INFO, "running on", omp_get_num_procs(), "omp threads");
+#else
+  LOG(LogLevel::LOG_INFO, "running single-threaded");
+#endif
 
   auto raytracer = Raytracer();
   raytracer.rng = std::make_shared<Random>();
   raytracer.scene = std::make_shared<Scene>();
 
   auto green = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 1.0, 0.1));
-  auto red = std::make_shared<DiffuseMaterial>(glm::vec3(1.0, 0.1, 0.1));
+  auto red = std::make_shared<DiffuseMaterial>(glm::vec3(1.0, 0.5, 0.5));
   auto blue = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 0.1, 1.0));
   auto white = std::make_shared<DiffuseMaterial>(glm::vec3(1));
 
@@ -145,9 +152,12 @@ int main() {
   });
 
   raytracer.scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 10, -3)));
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(1.4, 0, -3)));
 
-  render(raytracer, 100, 100, 10);
+  raytracer.scene->addLight(
+      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(10, 0, -3)));
+
+  render(raytracer, 100, 100, 100);
 
   return 0;
 }
