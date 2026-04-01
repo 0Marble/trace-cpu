@@ -1,0 +1,69 @@
+#pragma once
+
+#include "Raytracer.h"
+#include "Transform.h"
+#include "glm/gtc/constants.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+class PixelSampler {
+public:
+  virtual std::vector<glm::vec2> sampleUvs(size_t w, size_t h, size_t x,
+                                           size_t y) = 0;
+};
+
+class Frame {
+public:
+  float start_time;
+  float end_time;
+  size_t width, height;
+  std::vector<uint8_t> pixels;
+
+  void save(const std::string &path);
+};
+
+class Camera {
+public:
+  struct Projection {
+    float near = 0.1;
+    float far = 10.0;
+    float fov = glm::half_pi<float>();
+  };
+
+  std::shared_ptr<Transform> transform;
+  std::shared_ptr<PixelSampler> sampler;
+  Projection projection;
+  size_t width, height;
+
+  Camera(std::shared_ptr<Transform> transform,
+         std::shared_ptr<PixelSampler> sampler, Projection projection,
+         size_t width, size_t height);
+
+  Frame shoot(std::shared_ptr<Raytracer> rt, float start_time, float end_time);
+
+private:
+  struct Tile {
+    size_t i;
+    size_t j;
+    std::vector<uint8_t> pixels;
+  };
+
+  static const size_t tile_size = 32;
+
+  Tile shootTile(std::shared_ptr<Raytracer> rt, float start_time,
+                 float end_time, size_t i, size_t j);
+
+  void splatTile(Frame &frame, const Tile &tile);
+};
+
+class SimplePixelSampler : public PixelSampler {
+public:
+  size_t sample_cnt;
+
+  SimplePixelSampler(size_t sample_cnt = 1);
+
+  std::vector<glm::vec2> sampleUvs(size_t w, size_t h, size_t x,
+                                   size_t y) override;
+};

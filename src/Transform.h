@@ -21,6 +21,8 @@ public:
   InstantTransform(glm::vec3 translation, glm::vec3 scale = glm::vec3(1),
                    glm::quat rotation = {1, 0, 0, 0}, bool trs = true);
 
+  static InstantTransform lookAt(glm::vec3 pos, glm::vec3 at, glm::vec3 up);
+
   template <class T> T apply(T &object);
   template <class T> T applyInv(T &object) { return inverse().apply(object); }
 

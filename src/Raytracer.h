@@ -1,16 +1,15 @@
 
 #pragma once
 
-#include "Random.h"
 #include "Scene.h"
 #include <memory>
 
 class Raytracer {
 public:
   std::shared_ptr<Scene> scene;
-  std::shared_ptr<Random> rng;
+  size_t bounce_cnt = 3;
 
-  static const std::size_t bounce_cnt = 3;
+  Raytracer(std::shared_ptr<Scene> scene, size_t bounce_cnt = 3);
 
   virtual glm::vec3 trace(Ray ray);
 

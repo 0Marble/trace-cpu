@@ -1,0 +1,135 @@
+#include "Camera.h"
+#include "../vendor/stb_image_write.h"
+#include "Log.h"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/geometric.hpp"
+#include "glm/gtc/random.hpp"
+#include <vector>
+
+#ifdef PARALLEL
+#include <omp.h>
+#endif
+
+SimplePixelSampler::SimplePixelSampler(size_t sample_cnt)
+    : sample_cnt(sample_cnt) {}
+
+std::vector<glm::vec2> SimplePixelSampler::sampleUvs(size_t w, size_t h,
+                                                     size_t x, size_t y) {
+  float u = (float)(x) / (float)(w - 1) * 2.0f - 1.0f;
+  float v = (float)(y) / (float)(h - 1) * 2.0f - 1.0f;
+
+  return std::vector<glm::vec2>(sample_cnt, glm::vec2(u, v));
+}
+
+void Frame::save(const std::string &path) {
+  int res =
+      stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
+  ASSERT(res);
+}
+
+Camera::Camera(std::shared_ptr<Transform> transform,
+               std::shared_ptr<PixelSampler> sampler, Projection projection,
+               size_t width, size_t height)
+    : transform(transform), sampler(sampler), projection(projection),
+      width(width), height(height) {}
+
+Frame Camera::shoot(std::shared_ptr<Raytracer> rt, float start_time,
+                    float end_time) {
+  Frame frame = {
+      .start_time = start_time,
+      .end_time = end_time,
+      .width = width,
+      .height = height,
+      .pixels = std::vector<uint8_t>(width * height * 4, 0),
+  };
+
+  std::size_t x_tiles = width / tile_size;
+  std::size_t y_tiles = height / tile_size;
+
+  std::size_t total_work = (x_tiles + 1) * (y_tiles + 1);
+  std::size_t progress = 0;
+
+#ifdef PARALLEL
+#pragma omp parallel for collapse(2)
+#endif
+
+  for (std::size_t i = 0; i <= x_tiles; i++) {
+    for (std::size_t j = 0; j <= y_tiles; j++) {
+      auto tile = shootTile(rt, start_time, end_time, i, j);
+      splatTile(frame, tile);
+
+#ifdef PARALLEL
+#pragma omp critical
+#endif
+      {
+        progress += 1;
+        LOG(LogLevel::LOG_INFO, progress, "/", total_work);
+      }
+    }
+  }
+
+  return frame;
+}
+
+Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
+                               float end_time, size_t i, size_t j) {
+  Tile tile = {
+      .i = i,
+      .j = j,
+      .pixels = std::vector<uint8_t>(tile_size * tile_size * 4, 0),
+  };
+
+  float aspect = (float)width / (float)height;
+  glm::mat4 proj =
+      glm::perspective(projection.fov, aspect, projection.near, projection.far);
+
+  for (size_t x = tile.i * tile_size; x < (tile.i + 1) * tile_size && x < width;
+       x++) {
+    for (size_t y = tile.j * tile_size;
+         y < (tile.j + 1) * tile_size && y < height; y++) {
+
+      glm::vec3 color(0);
+      auto samples = sampler->sampleUvs(width, height, x, y);
+      for (auto uv : samples) {
+        float time = glm::linearRand(start_time, end_time);
+        Ray ray = {.dir = glm::vec3(uv, 1), .time = time};
+
+        ray.origin = proj * glm::vec4(ray.origin, 1.0f);
+        ray.dir = proj * glm::vec4(ray.dir, 0.0f);
+        ray = transform->sample(time).apply(ray);
+        ray.dir = glm::normalize(ray.dir);
+
+        color += rt->trace(ray);
+      }
+
+      glm::vec3 avg_color =
+          glm::clamp(color / (float)samples.size(), glm::vec3(0), glm::vec3(1));
+      size_t t_idx =
+          (y - tile.j * tile_size) * (tile_size) + (x - tile.i * tile_size);
+
+      tile.pixels[4 * t_idx + 0] = avg_color.r * 255.0f;
+      tile.pixels[4 * t_idx + 1] = avg_color.g * 255.0f;
+      tile.pixels[4 * t_idx + 2] = avg_color.b * 255.0f;
+      tile.pixels[4 * t_idx + 3] = 0xFF;
+    }
+  }
+
+  return tile;
+}
+
+void Camera::splatTile(Frame &frame, const Tile &tile) {
+  for (size_t x = tile.i * tile_size; x < (tile.i + 1) * tile_size && x < width;
+       x++) {
+    for (size_t y = tile.j * tile_size;
+         y < (tile.j + 1) * tile_size && y < height; y++) {
+      size_t t_idx =
+          (y - tile.j * tile_size) * (tile_size) + (x - tile.i * tile_size);
+      size_t f_idx = (height - y - 1) * width + x;
+
+      frame.pixels[4 * f_idx + 0] = tile.pixels[4 * t_idx + 0];
+      frame.pixels[4 * f_idx + 1] = tile.pixels[4 * t_idx + 1];
+      frame.pixels[4 * f_idx + 2] = tile.pixels[4 * t_idx + 2];
+      frame.pixels[4 * f_idx + 3] = tile.pixels[4 * t_idx + 3];
+    }
+  }
+}

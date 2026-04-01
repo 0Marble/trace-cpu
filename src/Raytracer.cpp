@@ -6,6 +6,9 @@
 #include <array>
 #include <cmath>
 
+Raytracer::Raytracer(std::shared_ptr<Scene> scene, size_t bounce_cnt)
+    : scene(scene), bounce_cnt(bounce_cnt) {}
+
 glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
   auto collision = scene->intersect(ray);
   if (!collision) {

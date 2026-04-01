@@ -2,6 +2,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/quaternion_common.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 InstantTransform::InstantTransform() {}
 
@@ -37,3 +38,9 @@ InstantTransform InstantTransform::inverse() const {
 }
 
 InstantTransform InstantTransform::sample(float) { return *this; }
+
+InstantTransform InstantTransform::lookAt(glm::vec3 pos, glm::vec3 at,
+                                          glm::vec3 up) {
+  glm::quat rot = glm::quatLookAt(glm::normalize(at - pos), up);
+  return InstantTransform(pos, glm::vec3(1), rot);
+}
