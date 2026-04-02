@@ -1,11 +1,11 @@
 #include "Camera.h"
 #include "../vendor/stb_image_write.h"
 #include "Log.h"
+#include "Progress.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/geometric.hpp"
 #include "glm/gtc/random.hpp"
 #include <filesystem>
-#include <iterator>
 #include <vector>
 
 #ifdef PARALLEL
@@ -51,34 +51,21 @@ Frame Camera::snap(std::shared_ptr<Raytracer> rt, float start_time,
 
   std::size_t x_tiles = width / tile_size;
   std::size_t y_tiles = height / tile_size;
-
-  std::size_t total_work = (x_tiles + 1) * (y_tiles + 1);
-  std::size_t progress = 0;
-  std::size_t last_percent = 0;
+  Progress::Task t =
+      Progress::beginGroup((x_tiles + 1) * (y_tiles + 1), "tiles");
 
 #ifdef PARALLEL
 #pragma omp parallel for collapse(2)
 #endif
-
   for (std::size_t i = 0; i <= x_tiles; i++) {
     for (std::size_t j = 0; j <= y_tiles; j++) {
       auto tile = shootTile(rt, start_time, end_time, i, j);
       splatTile(frame, tile);
-
-#ifdef PARALLEL
-#pragma omp critical
-#endif
-      {
-        progress += 1;
-        std::size_t percent = (float)progress / (float)total_work * 100.f;
-        if (percent != last_percent) {
-          LOG(LogLevel::LOG_INFO, "tile", progress, "/", total_work, "(",
-              percent, "% )");
-          last_percent = percent;
-        }
-      }
     }
   }
+
+  Progress::end();
+  Progress::finish(t);
 
   return frame;
 }
@@ -108,6 +95,8 @@ glm::vec3 Camera::pixel(std::shared_ptr<Raytracer> rt, float t, size_t x,
 
 Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
                                float end_time, size_t i, size_t j) {
+  Progress::Task t = Progress::beginItem("tile (", i, ", ", j, ")");
+
   Tile tile = {
       .i = i,
       .j = j,
@@ -155,6 +144,8 @@ Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
     }
   }
 
+  Progress::finish(t);
+
   return tile;
 }
 
@@ -182,13 +173,19 @@ void Camera::record(std::shared_ptr<Raytracer> rt, const std::string &out_dir,
   float frame_dur = 1.0f / fps;
   size_t frame_cnt = std::ceil(duration * fps);
 
+  Progress::Task t = Progress::beginGroup(frame_cnt, "video@", out_dir);
   for (size_t i = 0; i < frame_cnt; i++) {
+    Progress::Task t = Progress::beginGroup(1, "frame ", i);
+
     float start = (float)i * frame_dur;
     float end = (float)(i + 1) * frame_dur;
     Frame f = snap(rt, start, end);
     f.save(out_dir + "/frame-" + std::to_string(i) + ".png");
-    LOG(LogLevel::LOG_INFO, "frame", i + 1, "/", frame_cnt);
+    Progress::end();
+    Progress::finish(t);
   }
+  Progress::end();
+  Progress::finish(t);
 }
 
 UniformPixelSampler::UniformPixelSampler(size_t sample_cnt)

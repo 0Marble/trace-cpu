@@ -75,4 +75,5 @@ AABB Triangle::aabb() {
 
   return AABB{.pos = min, .size = size};
 }
+
 Geometry::Type Triangle::type() const { return Type::Triangle; }
