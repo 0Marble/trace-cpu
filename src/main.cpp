@@ -9,6 +9,8 @@
 #include "Triangle.h"
 #include "VecFmt.h"
 #include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/quaternion_transform.hpp"
+#include "glm/ext/scalar_constants.hpp"
 #include "glm/gtc/constants.hpp"
 #include <cstddef>
 #include <memory>
@@ -60,15 +62,16 @@ int main() {
   auto blue = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 0.1, 1.0));
   auto white = std::make_shared<DiffuseMaterial>(glm::vec3(1));
 
-  auto back = std::make_shared<InstantTransform>(glm::vec3(0, 0, -4));
+  glm::quat q_ident = {1, 0, 0, 0};
+  auto back = std::make_shared<InstantTransform>(glm::vec3(0, 0, -1));
   auto bot = std::make_shared<InstantTransform>(
-      glm::vec3(0, -1, -3), glm::vec3(1),
-      glm::quat(0.7071068, -0.7071068, 0, 0));
-  auto left =
-      std::make_shared<InstantTransform>(glm::vec3(-1, 0, -3), glm::vec3(1),
-                                         glm::quat(0.7071068, 0, 0.7071068, 0));
+      glm::vec3(0, -1, 0), glm::vec3(1),
+      glm::rotate(q_ident, glm::half_pi<float>(), glm::vec3(1, 0, 0)));
+  auto top = std::make_shared<InstantTransform>(
+      glm::vec3(0, 1, 0), glm::vec3(1),
+      glm::rotate(q_ident, -glm::half_pi<float>(), glm::vec3(1, 0, 0)));
   auto sphere =
-      std::make_shared<InstantTransform>(glm::vec3(0, 0, -3), glm::vec3(0.5));
+      std::make_shared<InstantTransform>(glm::vec3(0, 0, 0), glm::vec3(0.5));
 
   std::vector<std::shared_ptr<Triangle>> tris = {};
   for (size_t i = 0; i < sizeof(inds) / sizeof(inds[0]); i += 3) {
@@ -77,12 +80,11 @@ int main() {
     tris.push_back(std::move(tri));
   }
 
-  // for (auto &tri : tris) {
-  //   scene->addObject({.geometry = tri, .material = blue, .transform = bot});
-  //   scene->addObject({.geometry = tri, .material = green, .transform =
-  //   back}); scene->addObject({.geometry = tri, .material = red, .transform =
-  //   left});
-  // }
+  for (auto &tri : tris) {
+    scene->addObject({.geometry = tri, .material = blue, .transform = bot});
+    scene->addObject({.geometry = tri, .material = green, .transform = back});
+    scene->addObject({.geometry = tri, .material = red, .transform = top});
+  }
 
   scene->addObject({
       .geometry = std::make_shared<Sphere>(),
@@ -90,25 +92,30 @@ int main() {
       .transform = sphere,
   });
 
-  scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(10, 0, -3)));
-  scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 0, -13)));
-  scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(-10, 0, -3)));
-  scene->addLight(
-      std::make_shared<PointLight>(glm::vec3(1, 1, 1), glm::vec3(0, 0, 7)));
+  float light_power = 20.0f;
+  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
+                                               glm::vec3(7, 0, 0)));
+  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
+                                               glm::vec3(0, 0, -7)));
+  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
+                                               glm::vec3(-7, 0, 0)));
+  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
+                                               glm::vec3(0, 0, 7)));
 
   auto rt = std::make_shared<Raytracer>(scene, 3);
 
   auto cam_path = std::make_shared<OrbitTransform>(
-      glm::vec3(0, 0, -3), glm::vec3(0), glm::vec3(0, 1, 0), 1.0f);
+      glm::vec3(0), glm::vec3(0, 0, 3), glm::vec3(0, 1, 0), 1.0f);
+  // auto cam_path =
+  // std::make_shared<InstantTransform>(InstantTransform::lookAt(
+  //     glm::vec3(0, 0, -3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 
-  Camera cam = Camera(cam_path, std::make_shared<SimplePixelSampler>(2),
-                      Camera::Projection{}, 300, 300);
+  Camera cam = Camera(cam_path, std::make_shared<UniformPixelSampler>(10),
+                      Camera::Projection{}, 1000, 1000);
 
-  // cam.snap(rt, 0, 0).save("image.png");
-  cam.record(rt, "out", 0, 2, 30);
+  // LOG(LogLevel::LOG_DEBUG, VecFmt(cam.pixel(rt, 0, 147, 150)));
+  cam.snap(rt, 0, 1.0f / 30.0f).save("image.png");
+  // cam.record(rt, "out", 0, 1, 30);
 
   return 0;
 }

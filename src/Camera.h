@@ -10,8 +10,8 @@
 
 class PixelSampler {
 public:
-  virtual std::vector<glm::vec2> sampleUvs(size_t w, size_t h, size_t x,
-                                           size_t y) = 0;
+  virtual std::vector<glm::vec2> sampleUvs(glm::vec2 uv_min,
+                                           glm::vec2 uv_max) = 0;
 };
 
 class Frame {
@@ -43,7 +43,10 @@ public:
 
   Frame snap(std::shared_ptr<Raytracer> rt, float start_time, float end_time);
 
-  glm::vec3 sample(std::shared_ptr<Raytracer> rt, float time, float u, float v);
+  glm::vec3 sampleUv(std::shared_ptr<Raytracer> rt, float time, float u,
+                     float v);
+  glm::vec3 pixel(std::shared_ptr<Raytracer> rt, float time, size_t x,
+                  size_t y);
 
   void record(std::shared_ptr<Raytracer> rt, const std::string &out_dir,
               float start_time, float end_time, float fps);
@@ -69,6 +72,14 @@ public:
 
   SimplePixelSampler(size_t sample_cnt = 1);
 
-  std::vector<glm::vec2> sampleUvs(size_t w, size_t h, size_t x,
-                                   size_t y) override;
+  std::vector<glm::vec2> sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max) override;
+};
+
+class UniformPixelSampler : public PixelSampler {
+public:
+  size_t sample_cnt;
+
+  UniformPixelSampler(size_t sample_cnt = 1);
+
+  std::vector<glm::vec2> sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max) override;
 };

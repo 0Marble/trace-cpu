@@ -23,4 +23,4 @@ clean:
 
 .PHONY: video
 video:
-	ffmpeg -framerate 30 -start_number 0 -i out/frame-%d.png -c:v libx264 -pix_fmt yuv420p out.mp4
+	ffmpeg -stream_loop 10 -framerate 30 -start_number 0 -i out/frame-%d.png -c:v libx264 -pix_fmt yuv420p out.mp4

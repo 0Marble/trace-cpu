@@ -14,12 +14,9 @@
 SimplePixelSampler::SimplePixelSampler(size_t sample_cnt)
     : sample_cnt(sample_cnt) {}
 
-std::vector<glm::vec2> SimplePixelSampler::sampleUvs(size_t w, size_t h,
-                                                     size_t x, size_t y) {
-  float u = (float)(x) / (float)(w - 1) * 2.0f - 1.0f;
-  float v = (float)(y) / (float)(h - 1) * 2.0f - 1.0f;
-
-  return std::vector<glm::vec2>(sample_cnt, glm::vec2(u, v));
+std::vector<glm::vec2> SimplePixelSampler::sampleUvs(glm::vec2 uv_min,
+                                                     glm::vec2 uv_max) {
+  return std::vector(sample_cnt, (uv_min + uv_max) * 0.5f);
 }
 
 void Frame::save(const std::string &path_str) {
@@ -83,8 +80,8 @@ Frame Camera::snap(std::shared_ptr<Raytracer> rt, float start_time,
   return frame;
 }
 
-glm::vec3 Camera::sample(std::shared_ptr<Raytracer> rt, float time, float u,
-                         float v) {
+glm::vec3 Camera::sampleUv(std::shared_ptr<Raytracer> rt, float time, float u,
+                           float v) {
 
   float aspect = (float)width / (float)height;
   glm::mat4 proj =
@@ -97,6 +94,13 @@ glm::vec3 Camera::sample(std::shared_ptr<Raytracer> rt, float time, float u,
   ray = transform->sample(time).apply(ray);
   ray.dir = glm::normalize(ray.dir);
   return rt->trace(ray);
+}
+
+glm::vec3 Camera::pixel(std::shared_ptr<Raytracer> rt, float t, size_t x,
+                        size_t y) {
+  float u = (float)(x) / (float)(width - 1) * 2.0f - 1.0f;
+  float v = (float)(y) / (float)(height - 1) * 2.0f - 1.0f;
+  return sampleUv(rt, t, u, v);
 }
 
 Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
@@ -117,7 +121,13 @@ Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
          y < (tile.j + 1) * tile_size && y < height; y++) {
 
       glm::vec3 color(0);
-      auto samples = sampler->sampleUvs(width, height, x, y);
+      float u_min = (float)(x) / (float)(width) * 2.0f - 1.0f;
+      float v_min = (float)(y) / (float)(height) * 2.0f - 1.0f;
+      float u_max = (float)(x + 1) / (float)(width) * 2.0f - 1.0f;
+      float v_max = (float)(y + 1) / (float)(height) * 2.0f - 1.0f;
+
+      auto samples =
+          sampler->sampleUvs(glm::vec2(u_min, v_min), glm::vec2(u_max, v_max));
       for (auto uv : samples) {
         float time = glm::linearRand(start_time, end_time);
         Ray ray = {.dir = glm::vec3(uv, 1), .time = time};
@@ -176,4 +186,19 @@ void Camera::record(std::shared_ptr<Raytracer> rt, const std::string &out_dir,
     f.save(out_dir + "/frame-" + std::to_string(i) + ".png");
     LOG(LogLevel::LOG_INFO, "frame", i + 1, "/", frame_cnt);
   }
+}
+
+UniformPixelSampler::UniformPixelSampler(size_t sample_cnt)
+    : sample_cnt(sample_cnt) {}
+
+std::vector<glm::vec2> UniformPixelSampler::sampleUvs(glm::vec2 uv_min,
+                                                      glm::vec2 uv_max) {
+  std::vector<glm::vec2> res(sample_cnt, glm::vec2(0));
+
+  for (auto &v : res) {
+    glm::vec2 rand = glm::linearRand(uv_min, uv_max);
+    v = rand;
+  }
+
+  return res;
 }

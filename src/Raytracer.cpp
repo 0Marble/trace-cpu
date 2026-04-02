@@ -4,7 +4,6 @@
 #include "glm/geometric.hpp"
 #include "glm/matrix.hpp"
 #include <array>
-#include <cmath>
 
 Raytracer::Raytracer(std::shared_ptr<Scene> scene, size_t bounce_cnt)
     : scene(scene), bounce_cnt(bounce_cnt) {}
@@ -23,12 +22,12 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
   auto o2w = transform.asMat();
   auto o2n = glm::transpose(n2o);
 
-  glm::vec3 to_view_n = o2n * (glm::vec3(w2o * glm::vec4(ray.dir, 0)));
+  glm::vec3 to_view_n =
+      glm::normalize(o2n * (glm::vec3(w2o * glm::vec4(ray.dir, 0))));
   ray.origin = o2w * glm::vec4(col.pos, 1.0f);
 
   glm::vec3 direct_light = glm::vec3(0);
-  float w = 0.0f;
-  bool black = true;
+  size_t ray_cnt = 0;
 
   for (auto &light : scene->lights) {
     glm::vec3 light_pos_w = light->worldPos(ray.time);
@@ -42,20 +41,16 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
     if (!light_color)
       continue;
 
-    glm::vec3 to_light_n = o2n * (w2o * glm::vec4(ray.dir, 0));
+    glm::vec3 to_light_n = glm::normalize(o2n * (w2o * glm::vec4(ray.dir, 0)));
 
-    // TODO: attenuation? same as below
-    float pdf = obj->material->pdf(col.uv, ray.time, to_view_n, to_light_n);
     direct_light +=
         obj->material->bsdf(col.uv, ray.time, to_view_n, to_light_n) *
-        light_color.value() * pdf * std::max(to_light_n.z, 0.0f);
-    w += pdf;
-
-    black = false;
+        light_color.value() * std::max(to_light_n.z, 0.0f) /
+        glm::dot(light_pos_w - ray.origin, light_pos_w - ray.origin);
   }
 
   glm::vec3 indirect_light = glm::vec3(0);
-  if (bounce != bounce_cnt) {
+  for (size_t i = bounce; i < bounce_cnt; i++) {
     float pdf = 0.0f;
     glm::vec3 bsdf = glm::vec3(0.0f);
     glm::vec3 to_obj_n =
@@ -63,18 +58,15 @@ glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
     ray.dir = glm::normalize(o2w * glm::vec4(n2o * to_obj_n, 0.0f));
 
     glm::vec3 obj_light = traceRec(ray, bounce + 1);
-    indirect_light += obj_light * bsdf * pdf * std::max(to_obj_n.z, 0.0f);
-    w += pdf;
-
-    black = false;
+    indirect_light += obj_light * bsdf / pdf * std::max(to_obj_n.z, 0.0f);
+    ray_cnt += 1;
   }
 
-  if (black) {
-    return glm::vec3(0.0f);
+  if (ray_cnt == 0) {
+    return direct_light;
   }
-  ASSERT(w != 0.0f);
 
-  return (direct_light + indirect_light) / w;
+  return direct_light + (indirect_light) / (float)ray_cnt;
 }
 
 glm::vec3 Raytracer::trace(Ray ray) { return traceRec(ray, 0); }
