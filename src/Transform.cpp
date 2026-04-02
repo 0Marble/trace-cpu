@@ -4,7 +4,6 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/quaternion_common.hpp"
 #include "glm/ext/quaternion_float.hpp"
-#include "glm/ext/quaternion_transform.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/quaternion.hpp"
@@ -87,4 +86,25 @@ InstantTransform OrbitTransform::sample(float time) {
   glm::mat4 rot = glm::rotate(glm::mat4(1.0f), t, axis);
   glm::vec3 pos = rot * glm::vec4(start - center, 1.0f);
   return InstantTransform::lookAt(pos + center, center, axis);
+}
+
+AABB InstantTransform::totalAABB(AABB start, float start_time, float end_time) {
+  (void)start_time;
+  (void)end_time;
+  return apply(start);
+}
+
+AABB KeyframeTransform::totalAABB(AABB start, float start_time,
+                                  float end_time) {
+  (void)start_time;
+  (void)end_time;
+  (void)start;
+  TODO();
+}
+
+AABB OrbitTransform::totalAABB(AABB start, float start_time, float end_time) {
+  (void)start_time;
+  (void)end_time;
+  (void)start;
+  TODO();
 }

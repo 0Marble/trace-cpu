@@ -23,6 +23,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 option(PARALLEL "parallel" OFF)
+option(BVH "use BVH" ON)
+
+if (BVH) 
+    message("-- Enabled BVH")
+    target_compile_definitions(trace PRIVATE USE_BVH)
+endif()
 
 if (PARALLEL)
     message("-- Enabled parallel support")

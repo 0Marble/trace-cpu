@@ -79,3 +79,5 @@ std::optional<Collision> Sphere::intersect(Ray ray) {
 AABB Sphere::aabb() {
   return {.pos = glm::vec3(-1.0f), .size = glm::vec3(2.0f)};
 }
+
+Geometry::Type Sphere::type() const { return Type::Sphere; }

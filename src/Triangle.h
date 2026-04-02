@@ -13,6 +13,7 @@ public:
 
   AABB aabb() override;
   std::optional<Collision> intersect(Ray ray) override;
+  Type type() const override;
 
 private:
   std::optional<glm::vec4> intersectUVWT(Ray ray);

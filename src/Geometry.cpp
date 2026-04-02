@@ -1,5 +1,9 @@
 #include "Geometry.h"
+#include "Log.h"
 #include "Transform.h"
+#include <cmath>
+#include <limits>
+#include <utility>
 
 bool AABB::contains(glm::vec3 point) const {
   bool x = point.x >= pos.x && point.x < pos.x + size.x;
@@ -25,17 +29,46 @@ std::array<glm::vec3, 8> AABB::corners() const {
 
 template <> AABB InstantTransform::apply<AABB>(AABB &aabb) {
   glm::mat4 mat = asMat();
-  glm::vec3 a = aabb.pos;
-  glm::vec3 b = aabb.pos + aabb.size;
 
-  for (auto p : aabb.corners()) {
-    glm::vec4 t = mat * glm::vec4{p.x, p.y, p.z, 1.0};
-    p = glm::vec3{t.x, t.y, t.z};
-    a = glm::min(a, p);
-    b = glm::max(b, p);
-  }
-
-  return {.pos = a, .size = b - a};
+  return {
+      .pos = mat * glm::vec4(aabb.pos, 1.0f),
+      .size = mat * glm::vec4(aabb.size, 0.0f),
+  };
 }
 
 Geometry::~Geometry() {}
+
+bool AABB::intersects(Ray ray) const {
+  float t_min = 0.0f;
+  float t_max = std::numeric_limits<float>::infinity();
+
+  for (size_t i = 0; i < 3; i++) {
+    float inv_ray_dir = 1.0f / ray.dir[i];
+    float t_near = (pos[i] - ray.origin[i]) * inv_ray_dir;
+    float t_far = (pos[i] + size[i] - ray.origin[i]) * inv_ray_dir;
+
+    if (t_near > t_far) {
+      std::swap(t_near, t_far);
+    }
+
+    t_min = glm::max(t_near, t_min);
+    t_max = glm::min(t_far, t_max);
+
+    if (t_min > t_max)
+      return false;
+  }
+
+  return true;
+}
+
+std::ostream &operator<<(std::ostream &out, Geometry::Type t) {
+  switch (t) {
+  case Geometry::Type::Sphere:
+    out << "Sphere";
+    break;
+  case Geometry::Type::Triangle:
+    out << "Triangle";
+    break;
+  }
+  return out;
+}

@@ -4,6 +4,7 @@
 #include <array>
 #include <glm/glm.hpp>
 #include <optional>
+#include <ostream>
 
 class Collision {
 public:
@@ -22,11 +23,18 @@ public:
   AABB combine(AABB other) const;
   bool contains(glm::vec3 point) const;
   std::array<glm::vec3, 8> corners() const;
+
+  bool intersects(Ray ray) const;
 };
 
 class Geometry {
 public:
+  enum class Type { Sphere, Triangle };
+
   virtual ~Geometry();
   virtual std::optional<Collision> intersect(Ray ray) = 0;
   virtual AABB aabb() = 0;
+  virtual Type type() const = 0;
 };
+
+std::ostream &operator<<(std::ostream &out, Geometry::Type t);

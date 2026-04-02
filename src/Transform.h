@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Geometry.h"
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
@@ -7,6 +8,7 @@ class InstantTransform;
 class Transform {
 public:
   virtual InstantTransform sample(float time) = 0;
+  virtual AABB totalAABB(AABB aabb, float start_time, float end_time) = 0;
 
   virtual ~Transform() = default;
 };
@@ -34,6 +36,8 @@ public:
   InstantTransform lerp(InstantTransform other, float t) const;
 
   InstantTransform sample(float time) override;
+
+  AABB totalAABB(AABB start, float start_time, float end_time) override;
 };
 
 class KeyframeTransform : public Transform {
@@ -45,6 +49,8 @@ public:
                     float duration = 1.0f);
 
   InstantTransform sample(float time) override;
+
+  AABB totalAABB(AABB start, float start_time, float end_time) override;
 };
 
 class OrbitTransform : public Transform {
@@ -58,4 +64,6 @@ public:
                  float rot_per_sec);
 
   InstantTransform sample(float time) override;
+
+  AABB totalAABB(AABB start, float start_time, float end_time) override;
 };

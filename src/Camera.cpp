@@ -5,6 +5,7 @@
 #include "glm/geometric.hpp"
 #include "glm/gtc/random.hpp"
 #include <filesystem>
+#include <iterator>
 #include <vector>
 
 #ifdef PARALLEL
@@ -38,6 +39,8 @@ Camera::Camera(std::shared_ptr<Transform> transform,
 
 Frame Camera::snap(std::shared_ptr<Raytracer> rt, float start_time,
                    float end_time) {
+  rt->scene->build(start_time, end_time);
+
   Frame frame = {
       .start_time = start_time,
       .end_time = end_time,

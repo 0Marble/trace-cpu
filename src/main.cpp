@@ -110,12 +110,12 @@ int main() {
   // std::make_shared<InstantTransform>(InstantTransform::lookAt(
   //     glm::vec3(0, 0, -3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 
-  Camera cam = Camera(cam_path, std::make_shared<UniformPixelSampler>(10),
+  Camera cam = Camera(cam_path, std::make_shared<UniformPixelSampler>(100),
                       Camera::Projection{}, 1000, 1000);
 
   // LOG(LogLevel::LOG_DEBUG, VecFmt(cam.pixel(rt, 0, 147, 150)));
-  cam.snap(rt, 0, 1.0f / 30.0f).save("image.png");
-  // cam.record(rt, "out", 0, 1, 30);
+  // cam.snap(rt, 0, 0).save("image.png");
+  cam.record(rt, "out", 0, 1, 30);
 
   return 0;
 }

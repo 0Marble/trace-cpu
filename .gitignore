@@ -3,3 +3,4 @@ build/
 .cache/
 *.png
 out/
+out.mp4

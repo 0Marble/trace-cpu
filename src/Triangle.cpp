@@ -1,6 +1,6 @@
 #include "Triangle.h"
 #include "Geometry.h"
-#include "Log.h"
+#include "glm/common.hpp"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 #include <optional>
@@ -60,4 +60,19 @@ std::optional<Collision> Triangle::intersect(Ray ray) {
   };
 }
 
-AABB Triangle::aabb() { TODO("unimplemented"); }
+AABB Triangle::aabb() {
+  glm::vec3 min = points[0];
+  glm::vec3 max = points[0];
+
+  for (auto x : points) {
+    min = glm::min(min, x);
+    max = glm::max(max, x);
+  }
+
+  float min_size = 0.1f;
+  glm::vec3 eps = glm::vec3(min_size);
+  glm::vec3 size = glm::max(max - min, eps);
+
+  return AABB{.pos = min, .size = size};
+}
+Geometry::Type Triangle::type() const { return Type::Triangle; }
