@@ -5,6 +5,7 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/geometric.hpp"
 #include "glm/gtc/random.hpp"
+#include <ctime>
 #include <filesystem>
 #include <vector>
 
@@ -73,6 +74,7 @@ Frame Camera::snap(std::shared_ptr<Raytracer> rt, float start_time,
 glm::vec3 Camera::sampleUv(std::shared_ptr<Raytracer> rt, float time, float u,
                            float v) {
 
+  rt->scene->build(time, time);
   float aspect = (float)width / (float)height;
   glm::mat4 proj =
       glm::perspective(projection.fov, aspect, projection.near, projection.far);

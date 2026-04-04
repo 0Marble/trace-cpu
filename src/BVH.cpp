@@ -1,6 +1,7 @@
 #include "BVH.h"
 #include "Log.h"
 #include "Object.h"
+#include "VecFmt.h"
 #include "glm/ext/vector_float3.hpp"
 #include <cstddef>
 #include <memory>
@@ -71,7 +72,11 @@ BVH::Node BVH::construct(std::vector<Object *> &&objects) {
     Object *o = objects[i];
     AABB obj_aabb =
         o->transform->totalAABB(o->geometry->aabb(), start_time, end_time);
-    total = total.combine(obj_aabb);
+    if (i == 0) {
+      total = obj_aabb;
+    } else {
+      total = total.combine(obj_aabb);
+    }
     mins[i] = obj_aabb.pos;
     maxs[i] = obj_aabb.pos + obj_aabb.size;
   }
@@ -149,13 +154,16 @@ void BVH::dump(std::ostream &out, Node node, size_t depth) const {
   switch (node.index()) {
   case 0: {
     auto l = std::get<0>(node);
+    out << space << "- " << VecFmt(l->aabb.pos) << "--"
+        << VecFmt(l->aabb.pos + l->aabb.size) << "\n";
     for (auto o : l->objects) {
-      out << space << "- " << o->geometry->type() << "(" << (void *)o << ")"
-          << "\n";
+      out << space << "- " << *o << "\n";
     }
   } break;
   case 1: {
     auto n = std::get<1>(node);
+    out << space << "- " << VecFmt(n->aabb.pos) << "--"
+        << VecFmt(n->aabb.pos + n->aabb.size) << "\n";
     out << space << "- left:\n";
     dump(out, n->left, depth + 1);
     out << space << "- right:\n";

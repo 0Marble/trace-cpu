@@ -24,6 +24,17 @@ FetchContent_MakeAvailable(glm)
 
 option(PARALLEL "parallel" OFF)
 option(BVH "use BVH" ON)
+option(NO_PROGRESS_REPORT "Disable progress reporter" OFF)
+
+if (NO_PROGRESS_REPORT)
+    message("-- Disabled progress report")
+    target_compile_definitions(trace PRIVATE NO_PROGRESS_REPORT)
+endif()
+
+if (PROGRESS_CLEAR_SCREEN)
+    message("-- Enabled Progress clearing screen")
+    target_compile_definitions(trace PRIVATE PROGRESS_CLEAR_SCREEN)
+endif()
 
 if (BVH) 
     message("-- Enabled BVH")

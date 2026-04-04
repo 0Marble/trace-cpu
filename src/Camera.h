@@ -41,7 +41,8 @@ public:
          std::shared_ptr<PixelSampler> sampler, Projection projection,
          size_t width, size_t height);
 
-  Frame snap(std::shared_ptr<Raytracer> rt, float start_time, float end_time);
+  Frame snap(std::shared_ptr<Raytracer> rt, float start_time = 0,
+             float end_time = 0);
 
   glm::vec3 sampleUv(std::shared_ptr<Raytracer> rt, float time, float u,
                      float v);

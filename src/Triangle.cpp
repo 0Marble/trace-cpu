@@ -68,10 +68,12 @@ AABB Triangle::aabb() {
     min = glm::min(min, x);
     max = glm::max(max, x);
   }
-
-  float min_size = 0.1f;
+  float min_size = 0.0f;
   glm::vec3 eps = glm::vec3(min_size);
-  glm::vec3 size = glm::max(max - min, eps);
+  min -= eps;
+  max += eps;
+
+  glm::vec3 size = max - min;
 
   return AABB{.pos = min, .size = size};
 }

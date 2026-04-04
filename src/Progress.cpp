@@ -82,6 +82,10 @@ void Progress::printRec(size_t depth, Task t) const {
 }
 
 void Progress::print() const {
+#ifdef NO_PROGRESS_REPORT
+  return;
+#endif
+
   std::cerr << "\033[0;0H\033[2J\n";
 
   for (auto &[k, v] : status) {

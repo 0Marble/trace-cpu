@@ -30,10 +30,16 @@ std::array<glm::vec3, 8> AABB::corners() const {
 template <> AABB InstantTransform::apply<AABB>(AABB &aabb) {
   glm::mat4 mat = asMat();
 
-  return {
-      .pos = mat * glm::vec4(aabb.pos, 1.0f),
-      .size = mat * glm::vec4(aabb.size, 0.0f),
-  };
+  auto corners = aabb.corners();
+  glm::vec3 min = glm::vec3(std::numeric_limits<float>::infinity());
+  glm::vec3 max = glm::vec3(-std::numeric_limits<float>::infinity());
+  for (auto p : corners) {
+    glm::vec3 q = mat * glm::vec4(p, 1.0f);
+    min = glm::min(q, min);
+    max = glm::max(q, max);
+  }
+
+  return AABB{.pos = min, .size = max - min};
 }
 
 Geometry::~Geometry() {}

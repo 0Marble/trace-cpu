@@ -81,9 +81,24 @@ int main() {
   }
 
   for (auto &tri : tris) {
-    scene->addObject({.geometry = tri, .material = blue, .transform = bot});
-    scene->addObject({.geometry = tri, .material = green, .transform = back});
-    scene->addObject({.geometry = tri, .material = red, .transform = top});
+    scene->addObject({
+        .geometry = tri,
+        .material = blue,
+        .transform = bot,
+        .debug_name = "blue",
+    });
+    scene->addObject({
+        .geometry = tri,
+        .material = green,
+        .transform = back,
+        .debug_name = "green",
+    });
+    scene->addObject({
+        .geometry = tri,
+        .material = red,
+        .transform = top,
+        .debug_name = "red",
+    });
   }
 
   scene->addObject({
@@ -114,8 +129,8 @@ int main() {
                       Camera::Projection{}, 1000, 1000);
 
   // LOG(LogLevel::LOG_DEBUG, VecFmt(cam.pixel(rt, 0, 147, 150)));
-  // cam.snap(rt, 0, 0).save("image.png");
-  cam.record(rt, "out", 0, 1, 30);
+  cam.snap(rt).save("image.png");
+  // cam.record(rt, "out", 0, 1, 30);
 
   return 0;
 }

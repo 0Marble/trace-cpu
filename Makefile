@@ -7,11 +7,12 @@ run: $(EXE)
 
 .PHONY: configure
 configure:
-	cmake -S . -B $(BUILD_DIR) -DPARALLEL=OFF -DCMAKE_BUILD_TYPE=Debug -DBVH=ON
+	cmake -S . -B $(BUILD_DIR) -DPARALLEL=OFF -DCMAKE_BUILD_TYPE=Debug -DBVH=ON -DNO_PROGRESS_REPORT=ON
 	cp $(BUILD_DIR)/compile_commands.json .
 
 configure-release:
-	cmake -S . -B $(BUILD_DIR) -DPARALLEL=ON -DCMAKE_BUILD_TYPE=Release -DBVH=ON
+	cmake -S . -B $(BUILD_DIR) -DPARALLEL=ON -DCMAKE_BUILD_TYPE=Release -DBVH=ON -DNO_PROGRESS_REPORT=OFF
+	cp $(BUILD_DIR)/compile_commands.json .
 
 .PHONY: build
 build:
