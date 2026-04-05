@@ -4,3 +4,6 @@ build/
 *.png
 out/
 out.mp4
+perf.data
+perf.data.old
+flamegraph.html

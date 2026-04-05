@@ -17,7 +17,7 @@ message("-- ${CMAKE_BUILD_TYPE}")
 include(FetchContent)
 FetchContent_Declare(
 	glm
-	GIT_REPOSITORY	https://github.com/g-truc/glm.git
+	GIT_REPOSITORY	    https://github.com/g-truc/glm.git
 	GIT_TAG 	    refs/tags/1.0.3
 )
 FetchContent_MakeAvailable(glm)

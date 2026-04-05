@@ -5,6 +5,11 @@ EXE=$(BUILD_DIR)/trace
 run: $(EXE)
 	$(EXE)
 
+.PHONY: perf
+perf: $(EXE)
+	perf record -F 99 -g $(EXE) 
+	perf script report flamegraph 
+
 .PHONY: configure
 configure:
 	cmake -S . -B $(BUILD_DIR) -DPARALLEL=OFF -DCMAKE_BUILD_TYPE=Debug -DBVH=ON -DNO_PROGRESS_REPORT=ON

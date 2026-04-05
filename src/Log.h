@@ -31,7 +31,7 @@ template <class... Args> void log(LogLevel lvl, const char *src, Args... args) {
     if (!(cond)) {                                                             \
       LOG(LogLevel::LOG_ERROR, "assertion failed: " #cond "\n\t",              \
           ##__VA_ARGS__);                                                      \
-      std::exit(1);                                                            \
+      __builtin_trap();                                                        \
     }                                                                          \
   } while (0)
 
