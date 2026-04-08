@@ -56,7 +56,7 @@ Frame Camera::snap(std::shared_ptr<Raytracer> rt, float start_time,
       Progress::beginGroup((x_tiles + 1) * (y_tiles + 1), "tiles");
 
 #ifdef PARALLEL
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) schedule(dynamic, 1)
 #endif
   for (std::size_t i = 0; i <= x_tiles; i++) {
     for (std::size_t j = 0; j <= y_tiles; j++) {

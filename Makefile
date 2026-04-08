@@ -7,7 +7,7 @@ run: $(EXE)
 
 .PHONY: perf
 perf: $(EXE)
-	perf record -F 99 -g $(EXE) 
+	perf record -F 99 -g -s $(EXE) 
 	perf script report flamegraph 
 
 .PHONY: configure

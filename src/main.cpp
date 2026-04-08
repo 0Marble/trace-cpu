@@ -125,8 +125,8 @@ int main() {
   // std::make_shared<InstantTransform>(InstantTransform::lookAt(
   //     glm::vec3(0, 0, -3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 
-  Camera cam = Camera(cam_path, std::make_shared<UniformPixelSampler>(10),
-                      Camera::Projection{}, 300, 300);
+  Camera cam = Camera(cam_path, std::make_shared<UniformPixelSampler>(100),
+                      Camera::Projection{}, 1000, 1000);
 
   // LOG(LogLevel::LOG_DEBUG, VecFmt(cam.pixel(rt, 0, 64, 65)));
   cam.snap(rt).save("image.png");

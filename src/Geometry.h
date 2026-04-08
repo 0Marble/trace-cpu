@@ -18,7 +18,7 @@ public:
 
 class AABB {
 public:
-  glm::vec3 pos = {}, size = {1.0f, 1.0f, 1.0f};
+  glm::vec3 pos = {}, size = {};
 
   AABB combine(AABB other) const;
   bool contains(glm::vec3 point) const;
