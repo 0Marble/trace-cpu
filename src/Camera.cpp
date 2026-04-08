@@ -2,6 +2,7 @@
 #include "../vendor/stb_image_write.h"
 #include "Log.h"
 #include "Progress.h"
+#include "Random.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/geometric.hpp"
 #include "glm/gtc/random.hpp"
@@ -123,7 +124,7 @@ Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
       auto samples =
           sampler->sampleUvs(glm::vec2(u_min, v_min), glm::vec2(u_max, v_max));
       for (auto uv : samples) {
-        float time = glm::linearRand(start_time, end_time);
+        float time = Random::uniform() * (end_time - start_time) + start_time;
         Ray ray = {.dir = glm::vec3(uv, 1), .time = time};
 
         ray.origin = proj * glm::vec4(ray.origin, 1.0f);
@@ -197,9 +198,10 @@ std::vector<glm::vec2> UniformPixelSampler::sampleUvs(glm::vec2 uv_min,
                                                       glm::vec2 uv_max) {
   std::vector<glm::vec2> res(sample_cnt, glm::vec2(0));
 
+  glm::vec2 size = uv_max - uv_min;
   for (auto &v : res) {
-    glm::vec2 rand = glm::linearRand(uv_min, uv_max);
-    v = rand;
+    v = Random::uniform2() * size + uv_min;
+    // v = glm::linearRand(glm::vec2(0), glm::vec2(1)) * size + uv_min;
   }
 
   return res;

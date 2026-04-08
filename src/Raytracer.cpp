@@ -1,86 +1,17 @@
 #include "Raytracer.h"
 #include "Log.h"
+#include "Random.h"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
+#include "glm/gtc/random.hpp"
 #include "glm/matrix.hpp"
-#include <array>
+#include <cstdlib>
 #include <vector>
 
-Raytracer::Raytracer(std::shared_ptr<Scene> scene, size_t bounce_cnt)
-    : scene(scene), bounce_cnt(bounce_cnt) {}
-
-glm::vec3 Raytracer::traceRec(Ray ray, std::size_t bounce) {
-  auto collision = scene->intersect(ray);
-  if (!collision) {
-    return glm::vec3(0);
-  }
-
-  auto [col, obj] = collision.value();
-  InstantTransform transform = obj->transform->sample(ray.time);
-  auto n2o =
-      glm::mat3(col.tangent, glm::cross(col.normal, col.tangent), col.normal);
-  auto w2o = transform.asInv();
-  auto o2w = transform.asMat();
-  auto o2n = glm::transpose(n2o);
-
-  glm::vec3 to_view_n =
-      glm::normalize(o2n * (glm::vec3(w2o * glm::vec4(ray.dir, 0))));
-  ray.origin = o2w * glm::vec4(col.pos, 1.0f);
-
-  glm::vec3 direct_light = glm::vec3(0);
-  size_t ray_cnt = 0;
-
-  for (auto &light : scene->lights) {
-    glm::vec3 light_pos_w = light->worldPos(ray.time);
-    ray.dir = glm::normalize(light_pos_w - ray.origin);
-
-    if (scene->intersect(ray).has_value()) {
-      continue;
-    }
-
-    auto light_color = light->sample(ray.dir, ray.time);
-    if (!light_color)
-      continue;
-
-    glm::vec3 to_light_n = glm::normalize(o2n * (w2o * glm::vec4(ray.dir, 0)));
-
-    direct_light +=
-        obj->material->bsdf(col.uv, ray.time, to_view_n, to_light_n) *
-        light_color.value() * std::max(to_light_n.z, 0.0f) /
-        glm::dot(light_pos_w - ray.origin, light_pos_w - ray.origin);
-  }
-
-  glm::vec3 indirect_light = glm::vec3(0);
-  for (size_t i = bounce; i < bounce_cnt; i++) {
-    float pdf = 0.0f;
-    glm::vec3 bsdf = glm::vec3(0.0f);
-    glm::vec3 to_obj_n =
-        obj->material->sample(col.uv, ray.time, to_view_n, pdf, bsdf);
-    ray.dir = glm::normalize(o2w * glm::vec4(n2o * to_obj_n, 0.0f));
-
-    glm::vec3 obj_light = traceRec(ray, bounce + 1);
-    indirect_light += obj_light * bsdf / pdf * std::max(to_obj_n.z, 0.0f);
-    ray_cnt += 1;
-  }
-
-  if (ray_cnt == 0) {
-    return direct_light;
-  }
-
-  return direct_light + (indirect_light) / (float)ray_cnt;
-}
-
-constexpr size_t calcSecondaryRayMaxCnt(size_t bounce_cnt) {
-  size_t sum = 0;
-  size_t prev = 1;
-  for (size_t i = 0; i < bounce_cnt; i++) {
-    size_t secondary = bounce_cnt - i;
-    size_t cur = prev * (secondary + 1);
-    sum += cur;
-    prev = cur;
-  }
-  return sum;
-}
+Raytracer::Raytracer(std::shared_ptr<Scene> scene, size_t bounce_cnt,
+                     float russian_roulette_prob)
+    : scene(scene), bounce_cnt(bounce_cnt),
+      russian_roulette_prob(russian_roulette_prob) {}
 
 struct Step {
   Ray incoming;
@@ -94,13 +25,12 @@ struct Step {
 };
 
 glm::vec3 Raytracer::trace(Ray from_camera_ray) {
-  std::vector<Step> steps{calcSecondaryRayMaxCnt(bounce_cnt)};
+  std::vector<Step> steps{bounce_cnt + 1};
   size_t read = 0;
   size_t write = 1;
+  float continue_prob = russian_roulette_prob;
 
-  steps[0] = Step{
-      .incoming = from_camera_ray,
-  };
+  steps[0] = Step{.incoming = from_camera_ray};
 
   while (read != write) {
     Step &s = steps[read];
@@ -148,23 +78,25 @@ glm::vec3 Raytracer::trace(Ray from_camera_ray) {
                    light_pos_w - shadow_ray.origin);
     }
 
-    for (size_t i = s.bounce; i < bounce_cnt; i++) {
-      float pdf = 0.0f;
-      glm::vec3 bsdf = glm::vec3(0.0f);
-      glm::vec3 to_obj_n = obj->material->sample(col.uv, secondary_ray.time,
-                                                 to_view_n, pdf, bsdf);
-      secondary_ray.dir = glm::normalize(o2w * glm::vec4(n2o * to_obj_n, 0.0f));
-
-      Step next = {
-          .incoming = secondary_ray,
-          .bounce = s.bounce + 1,
-          .weight = bsdf / pdf * std::max(to_obj_n.z, 0.0f),
-          .prev = read - 1,
-      };
-
-      ASSERT(write < steps.size());
-      steps[write++] = next;
+    if (Random::uniform() > continue_prob || s.bounce >= bounce_cnt) {
+      continue;
     }
+
+    float pdf = 0.0f;
+    glm::vec3 bsdf = glm::vec3(0.0f);
+    glm::vec3 to_obj_n =
+        obj->material->sample(col.uv, secondary_ray.time, to_view_n, pdf, bsdf);
+    secondary_ray.dir = glm::normalize(o2w * glm::vec4(n2o * to_obj_n, 0.0f));
+
+    Step next = {
+        .incoming = secondary_ray,
+        .bounce = s.bounce + 1,
+        .weight = bsdf / pdf * std::max(to_obj_n.z, 0.0f) / continue_prob,
+        .prev = read - 1,
+    };
+
+    ASSERT(write < steps.size());
+    steps[write++] = next;
   }
 
   for (size_t j = 0; j < write; j++) {

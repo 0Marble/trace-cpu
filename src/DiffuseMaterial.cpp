@@ -1,4 +1,5 @@
 #include "DiffuseMaterial.h"
+#include "Random.h"
 #include "glm/fwd.hpp"
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/random.hpp"
@@ -36,8 +37,7 @@ glm::vec3 DiffuseMaterial::sample(glm::vec2 uv, float time, glm::vec3 to_view,
   (void)time;
   (void)to_view;
 
-  glm::vec3 res = glm::sphericalRand(1.0f);
-  res.z = std::fabs(res.z);
+  glm::vec3 res = Random::hemisphere();
 
   pdf_out = PDF;
   bsdf_out = color;

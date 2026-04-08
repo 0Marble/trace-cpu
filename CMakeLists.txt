@@ -22,6 +22,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+set(CMAKE_CXX_FLAGS_REL_PERF "-O2 -g -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+set(CMAKE_BUILD_TYPE_REL_PERF "${CMAKE_CXX_FLAGS_REL_PERF}" CACHE STRING "Optimized, for running perf")
+
 option(PARALLEL "parallel" OFF)
 option(BVH "use BVH" ON)
 option(NO_PROGRESS_REPORT "Disable progress reporter" OFF)
