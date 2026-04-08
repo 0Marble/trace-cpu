@@ -10,8 +10,8 @@
 
 class PixelSampler {
 public:
-  virtual std::vector<glm::vec2> sampleUvs(glm::vec2 uv_min,
-                                           glm::vec2 uv_max) = 0;
+  virtual void sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max,
+                         std::vector<glm::vec2> &out) = 0;
 };
 
 class Frame {
@@ -67,20 +67,12 @@ private:
   void splatTile(Frame &frame, const Tile &tile);
 };
 
-class SimplePixelSampler : public PixelSampler {
-public:
-  size_t sample_cnt;
-
-  SimplePixelSampler(size_t sample_cnt = 1);
-
-  std::vector<glm::vec2> sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max) override;
-};
-
 class UniformPixelSampler : public PixelSampler {
 public:
   size_t sample_cnt;
 
   UniformPixelSampler(size_t sample_cnt = 1);
 
-  std::vector<glm::vec2> sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max) override;
+  void sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max,
+                 std::vector<glm::vec2> &out) override;
 };

@@ -5,7 +5,6 @@
 #include "Random.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/geometric.hpp"
-#include "glm/gtc/random.hpp"
 #include <ctime>
 #include <filesystem>
 #include <vector>
@@ -13,14 +12,6 @@
 #ifdef PARALLEL
 #include <omp.h>
 #endif
-
-SimplePixelSampler::SimplePixelSampler(size_t sample_cnt)
-    : sample_cnt(sample_cnt) {}
-
-std::vector<glm::vec2> SimplePixelSampler::sampleUvs(glm::vec2 uv_min,
-                                                     glm::vec2 uv_max) {
-  return std::vector(sample_cnt, (uv_min + uv_max) * 0.5f);
-}
 
 void Frame::save(const std::string &path_str) {
   std::filesystem::path path(path_str);
@@ -110,6 +101,7 @@ Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
   glm::mat4 proj =
       glm::perspective(projection.fov, aspect, projection.near, projection.far);
 
+  std::vector<glm::vec2> samples{};
   for (size_t x = tile.i * tile_size; x < (tile.i + 1) * tile_size && x < width;
        x++) {
     for (size_t y = tile.j * tile_size;
@@ -121,8 +113,8 @@ Camera::Tile Camera::shootTile(std::shared_ptr<Raytracer> rt, float start_time,
       float u_max = (float)(x + 1) / (float)(width) * 2.0f - 1.0f;
       float v_max = (float)(y + 1) / (float)(height) * 2.0f - 1.0f;
 
-      auto samples =
-          sampler->sampleUvs(glm::vec2(u_min, v_min), glm::vec2(u_max, v_max));
+      sampler->sampleUvs(glm::vec2(u_min, v_min), glm::vec2(u_max, v_max),
+                         samples);
       for (auto uv : samples) {
         float time = Random::uniform() * (end_time - start_time) + start_time;
         Ray ray = {.dir = glm::vec3(uv, 1), .time = time};
@@ -194,15 +186,15 @@ void Camera::record(std::shared_ptr<Raytracer> rt, const std::string &out_dir,
 UniformPixelSampler::UniformPixelSampler(size_t sample_cnt)
     : sample_cnt(sample_cnt) {}
 
-std::vector<glm::vec2> UniformPixelSampler::sampleUvs(glm::vec2 uv_min,
-                                                      glm::vec2 uv_max) {
-  std::vector<glm::vec2> res(sample_cnt, glm::vec2(0));
+void UniformPixelSampler::sampleUvs(glm::vec2 uv_min, glm::vec2 uv_max,
+                                    std::vector<glm::vec2> &out) {
+  out.clear();
+  out.resize(sample_cnt, glm::vec2(0));
 
   glm::vec2 size = uv_max - uv_min;
-  for (auto &v : res) {
+  for (auto &v : out) {
     v = Random::uniform2() * size + uv_min;
-    // v = glm::linearRand(glm::vec2(0), glm::vec2(1)) * size + uv_min;
   }
 
-  return res;
+  return;
 }

@@ -3,7 +3,6 @@
 #include "Random.h"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
-#include "glm/gtc/random.hpp"
 #include "glm/matrix.hpp"
 #include <cstdlib>
 #include <vector>
@@ -25,7 +24,9 @@ struct Step {
 };
 
 glm::vec3 Raytracer::trace(Ray from_camera_ray) {
-  std::vector<Step> steps{bounce_cnt + 1};
+  scene->clearMatCache();
+  static thread_local std::vector<Step> steps{bounce_cnt + 1};
+
   size_t read = 0;
   size_t write = 1;
   float continue_prob = russian_roulette_prob;

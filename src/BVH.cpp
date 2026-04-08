@@ -20,13 +20,15 @@ BVH::BVH(const std::vector<Object> &objects, float start_time, float end_time)
   root = construct(std::move(refs));
 }
 
-std::vector<Object *> BVH::potentialIntersections(Ray ray) {
-  std::vector<Object *> res = {};
+void BVH::potentialIntersections(Ray ray, std::vector<Object *> &out) {
+  out.clear();
   if (nodes.size() == 0) {
-    return res;
+    return;
   }
 
-  std::vector<Node *> stack = {&nodes[root]};
+  static thread_local std::vector<Node *> stack = {};
+  stack.clear();
+  stack.push_back(&nodes[root]);
 
   while (!stack.empty()) {
     Node *n = stack.back();
@@ -35,7 +37,7 @@ std::vector<Object *> BVH::potentialIntersections(Ray ray) {
     if (n->aabb.intersects(ray)) {
       if (n->is_leaf) {
         std::copy(n->objects.begin(), n->objects.end(),
-                  std::back_inserter(res));
+                  std::back_inserter(out));
       } else {
         stack.push_back(&nodes[n->left]);
         stack.push_back(&nodes[n->right]);
@@ -43,7 +45,7 @@ std::vector<Object *> BVH::potentialIntersections(Ray ray) {
     }
   }
 
-  return res;
+  return;
 }
 
 size_t absdiff(size_t a, size_t b) {

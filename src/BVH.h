@@ -29,7 +29,7 @@ public:
 
   BVH &operator=(BVH &&other) = default;
 
-  std::vector<Object *> potentialIntersections(Ray ray);
+  void potentialIntersections(Ray ray, std::vector<Object *> &out);
 
   friend std::ostream &operator<<(std::ostream &out, const BVH &bvh);
 
