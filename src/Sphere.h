@@ -5,7 +5,7 @@
 class Sphere : public Geometry {
 public:
   AABB aabb() override;
-  std::optional<Collision> intersect(Ray ray) override;
+  std::optional<Collision> intersect(Ray ray, float min_t) override;
   Type type() const override;
 
 private:

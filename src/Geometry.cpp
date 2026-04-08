@@ -75,6 +75,9 @@ std::ostream &operator<<(std::ostream &out, Geometry::Type t) {
   case Geometry::Type::Triangle:
     out << "Triangle";
     break;
+  case Geometry::Type::Obj:
+    out << "Obj";
+    break;
   }
   return out;
 }

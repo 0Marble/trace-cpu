@@ -45,13 +45,16 @@ std::optional<float> Sphere::intersectT(Ray ray) {
   return t;
 }
 
-std::optional<Collision> Sphere::intersect(Ray ray) {
+std::optional<Collision> Sphere::intersect(Ray ray, float min_t) {
 
   auto maybe_t = intersectT(ray);
   if (!maybe_t)
     return {};
   float t = maybe_t.value();
   ASSERT(t > 0);
+  // TODO: probably possible to do this earlier
+  if (t > min_t)
+    return {};
 
   glm::vec3 pos = ray.at(t);
   float u = glm::one_over_two_pi<float>() * std::atan2(pos.y, pos.x);

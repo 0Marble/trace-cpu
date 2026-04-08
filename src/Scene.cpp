@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "Light.h"
 #include "glm/geometric.hpp"
+#include <limits>
 #include <memory>
 
 #ifdef PARALLEL
@@ -42,7 +43,7 @@ std::optional<Scene::Intersection> Scene::intersect(Ray ray) {
 
   ray.dir = glm::normalize(ray.dir);
   std::optional<Scene::Intersection> res = {};
-  float dist = 0.0f;
+  float dist = std::numeric_limits<float>::infinity();
 
 #ifdef PARALLEL
   int thread = omp_get_thread_num();
@@ -76,8 +77,8 @@ std::optional<Scene::Intersection> Scene::intersect(Ray ray) {
         .time = ray.time,
     };
 
-    auto col = obj->geometry->intersect(r);
-    if (col && (!res || dist >= col->t)) {
+    auto col = obj->geometry->intersect(r, dist);
+    if (col) {
       res = std::make_pair(col.value(), obj);
       dist = col->t;
     }

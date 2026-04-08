@@ -37,11 +37,15 @@ std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) {
   }
 }
 
-std::optional<Collision> Triangle::intersect(Ray ray) {
+std::optional<Collision> Triangle::intersect(Ray ray, float min_t) {
   auto maybe = intersectUVWT(ray);
   if (!maybe)
     return {};
   glm::vec4 uvwt = maybe.value();
+
+  // TODO: probably possible to do this earlier
+  if (uvwt.w > min_t)
+    return {};
 
   glm::vec3 e1 = points[1] - points[0];
   glm::vec3 e2 = points[2] - points[0];

@@ -29,10 +29,10 @@ public:
 
 class Geometry {
 public:
-  enum class Type { Sphere, Triangle };
+  enum class Type { Sphere, Triangle, Obj };
 
   virtual ~Geometry();
-  virtual std::optional<Collision> intersect(Ray ray) = 0;
+  virtual std::optional<Collision> intersect(Ray ray, float min_t) = 0;
   virtual AABB aabb() = 0;
   virtual Type type() const = 0;
 };
