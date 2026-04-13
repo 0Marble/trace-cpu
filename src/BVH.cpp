@@ -1,4 +1,5 @@
 #include "BVH.h"
+#include "Log.h"
 #include "Object.h"
 #include "VecFmt.h"
 #include "glm/ext/vector_float3.hpp"
@@ -15,12 +16,11 @@ void BVH::rebuild(float start_time, float end_time) {
   std::vector<Triangle> temp = {};
 
   for (auto &o : objects) {
-    temp.clear();
     o.triangles(temp);
     std::copy(temp.begin(), temp.end(), std::back_inserter(tris));
   }
 
-  construct(std::move(tris), start_time, end_time);
+  root = construct(std::move(tris), start_time, end_time);
 }
 
 void BVH::potentialIntersections(Ray ray, std::vector<Triangle> &out) {
@@ -59,7 +59,7 @@ size_t absdiff(size_t a, size_t b) {
 // TODO: this is pretty inefficient, but it only runs once at the start
 size_t BVH::construct(std::vector<Triangle> &&tris, float start_time,
                       float end_time) {
-  size_t n = objects.size();
+  size_t n = tris.size();
   if (n == 0) {
     size_t idx = nodes.size();
     nodes.push_back(Node{.is_leaf = true});
@@ -67,8 +67,8 @@ size_t BVH::construct(std::vector<Triangle> &&tris, float start_time,
   }
 
   AABB total = {};
-  std::vector<glm::vec3> mins(objects.size());
-  std::vector<glm::vec3> maxs(objects.size());
+  std::vector<glm::vec3> mins(n);
+  std::vector<glm::vec3> maxs(n);
 
   for (size_t i = 0; i < n; i++) {
     auto tri = tris[i];
@@ -83,7 +83,7 @@ size_t BVH::construct(std::vector<Triangle> &&tris, float start_time,
     maxs[i] = obj_aabb.pos + obj_aabb.size;
   }
 
-  size_t best_diff = objects.size();
+  size_t best_diff = n;
   std::vector<Triangle> best_left{};
   std::vector<Triangle> best_right{};
 
@@ -139,11 +139,13 @@ size_t BVH::construct(std::vector<Triangle> &&tris, float start_time,
     }
   }
 
-  if (best_diff == objects.size()) {
+  if (best_diff == n) {
     size_t idx = nodes.size();
     nodes.push_back(Node{.is_leaf = true, .tris = tris, .aabb = total});
     return idx;
   } else {
+    ASSERT(best_right.size() + best_left.size() == n);
+
     size_t left = construct(std::move(best_left), start_time, end_time);
     size_t right = construct(std::move(best_right), start_time, end_time);
     size_t idx = nodes.size();

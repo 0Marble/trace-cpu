@@ -14,10 +14,9 @@ static const float epsilon = 1e-5;
 Triangle::Triangle(const Object *obj, size_t face) : obj(obj), face(face) {}
 
 std::array<glm::vec3, 3> Triangle::points() const {
-  auto idx = obj->mesh->mesh->indices[face].vertex_index;
-  auto a = obj->mesh->mesh->indices[3 * idx + 0].vertex_index;
-  auto b = obj->mesh->mesh->indices[3 * idx + 1].vertex_index;
-  auto c = obj->mesh->mesh->indices[3 * idx + 2].vertex_index;
+  auto a = obj->mesh->mesh->indices[3 * face + 0].vertex_index;
+  auto b = obj->mesh->mesh->indices[3 * face + 1].vertex_index;
+  auto c = obj->mesh->mesh->indices[3 * face + 2].vertex_index;
   const auto &verts = obj->mesh->file->GetAttrib().vertices;
 
   return {
@@ -78,7 +77,7 @@ std::optional<Intersection> Triangle::intersect(Ray ray, float min_t) const {
       .ray = ray,
       .t = uvwt[3],
       .uv = glm::vec2(uvwt),
-      .n2o = glm::mat3(e1, e2, n),
+      .n2o = glm::mat3(e1, glm::cross(e1, n), n),
       .tri = *this,
   };
 }

@@ -20,8 +20,8 @@ public:
   glm::vec3 scale = {1, 1, 1};
   glm::quat rotation = {1, 0, 0, 0};
 
-  InstantTransform();
-  InstantTransform(glm::vec3 translation, glm::vec3 scale = glm::vec3(1),
+  InstantTransform(glm::vec3 translation = {0, 0, 0},
+                   glm::vec3 scale = glm::vec3(1),
                    glm::quat rotation = {1, 0, 0, 0}, bool trs = true);
 
   static InstantTransform lookAt(glm::vec3 pos, glm::vec3 at, glm::vec3 up);

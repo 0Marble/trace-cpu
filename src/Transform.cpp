@@ -8,8 +8,6 @@
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/quaternion.hpp"
 
-InstantTransform::InstantTransform() {}
-
 InstantTransform::InstantTransform(glm::vec3 translation, glm::vec3 scale,
                                    glm::quat rotation, bool trs)
     : trs(trs), translation(translation), scale(scale), rotation(rotation) {}

@@ -15,6 +15,8 @@ public:
   Frame snap(Scene &scene, size_t width, size_t height, float start_time = 0,
              float end_time = 0) override;
 
+  glm::vec3 sampleUv(Scene &scene, glm::vec2 uv, float time);
+
 private:
   struct Tile {
     size_t i, j;

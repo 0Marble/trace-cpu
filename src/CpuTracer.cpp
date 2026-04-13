@@ -12,6 +12,7 @@ CpuTracer::CpuTracer(size_t bounce_cnt, size_t sample_cnt)
 
 Frame CpuTracer::snap(Scene &scene, size_t width, size_t height,
                       float start_time, float end_time) {
+  scene.startFrame(start_time, end_time);
   Frame frame = {
       .width = width,
       .height = height,
@@ -59,12 +60,12 @@ CpuTracer::Tile CpuTracer::snapTile(Scene &scene, size_t i, size_t j,
          y < (tile.j + 1) * tile_size && y < height; y++) {
 
       glm::vec3 color(0);
-      float u_min = (float)(x) / (float)(width) * 2.0f - 1.0f;
-      float v_min = (float)(y) / (float)(height) * 2.0f - 1.0f;
-      float u_max = (float)(x + 1) / (float)(width) * 2.0f - 1.0f;
-      float v_max = (float)(y + 1) / (float)(height) * 2.0f - 1.0f;
+      glm::vec2 min_uv =
+          glm::vec2(x, y) / glm::vec2(width, height) * 2.0f - 1.0f;
+      glm::vec2 max_uv =
+          glm::vec2(x + 1, y + 1) / glm::vec2(width, height) * 2.0f - 1.0f;
 
-      sampleUvs(glm::vec2(u_min, v_min), glm::vec2(u_max, v_max), samples);
+      sampleUvs(min_uv, max_uv, samples);
 
       for (auto uv : samples) {
         float time = Random::uniform() * (end_time - start_time) + start_time;
@@ -98,6 +99,11 @@ void CpuTracer::splatTile(Frame &frame, const Tile &tile) {
       frame.pixels[f_idx] = tile.pixels[t_idx];
     }
   }
+}
+
+glm::vec3 CpuTracer::sampleUv(Scene &scene, glm::vec2 uv, float time) {
+  scene.startFrame(time, time);
+  return trace(scene.camera.shootRay(uv, time), scene);
 }
 
 struct Step {
@@ -215,6 +221,7 @@ glm::vec3 CpuTracer::trace(Ray from_camera_ray, Scene &scene) {
 
 void CpuTracer::sampleUvs(glm::vec2 min_uv, glm::vec2 max_uv,
                           std::vector<glm::vec2> &out) {
+  out.clear();
   glm::vec2 size = max_uv - min_uv;
   for (size_t i = 0; i < sample_cnt; i++) {
     out.push_back(Random::uniform2() * size + min_uv);

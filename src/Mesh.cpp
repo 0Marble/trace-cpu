@@ -19,5 +19,5 @@ Mesh::Mesh(std::filesystem::path obj_path, std::string_view name) {
   bool ok = reader->ParseFromFile(obj_path, cfg);
   ASSERT(ok, reader->Error());
 
-  Mesh(reader, name);
+  *this = Mesh(reader, name);
 }

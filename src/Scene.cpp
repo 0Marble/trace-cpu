@@ -28,6 +28,7 @@ void Scene::addLight(std::shared_ptr<Light> light) { lights.push_back(light); }
 void Scene::startFrame(float start_time, float end_time) {
 #ifdef USE_BVH
   bvh.rebuild(start_time, end_time);
+  LOG(LogLevel::LOG_DEBUG, bvh);
 #else
   (void)start_time;
   (void)end_time;

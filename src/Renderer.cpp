@@ -3,20 +3,24 @@
 #include "Log.h"
 #include "Progress.h"
 #include <cstdint>
+#include <filesystem>
 
 void Frame::save(std::filesystem::path path) const {
-  std::vector<uint8_t> data(width * height * 4, 0);
+  if (path.has_parent_path()) {
+    std::filesystem::create_directories(path.parent_path());
+  }
+
+  std::vector<uint8_t> data(width * height * 4, 0xFF);
 
   for (size_t i = 0; i < pixels.size(); i++) {
     glm::vec3 color = pixels[i];
     data[4 * i + 0] = (color.r * 255.0f);
     data[4 * i + 1] = (color.g * 255.0f);
     data[4 * i + 2] = (color.b * 255.0f);
-    data[4 * i + 3] = 0xFF;
   }
 
   int res =
-      stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
+      stbi_write_png(path.c_str(), width, height, 4, data.data(), width * 4);
   ASSERT(res);
 }
 
