@@ -8,19 +8,22 @@
 #include <utility>
 #include <vector>
 
-BVH::BVH(const std::vector<Object> &objects, float start_time, float end_time)
-    : objects(objects), nodes(), root(0), start_time(start_time),
-      end_time(end_time) {
+void BVH::addObject(Object obj) { objects.push_back(obj); }
 
-  std::vector<Object *> refs(objects.size());
-  for (size_t i = 0; i < objects.size(); i++) {
-    refs[i] = &this->objects[i];
+void BVH::rebuild(float start_time, float end_time) {
+  std::vector<Triangle> tris = {};
+  std::vector<Triangle> temp = {};
+
+  for (auto &o : objects) {
+    temp.clear();
+    o.triangles(temp);
+    std::copy(temp.begin(), temp.end(), std::back_inserter(tris));
   }
 
-  root = construct(std::move(refs));
+  construct(std::move(tris), start_time, end_time);
 }
 
-void BVH::potentialIntersections(Ray ray, std::vector<Object *> &out) {
+void BVH::potentialIntersections(Ray ray, std::vector<Triangle> &out) {
   out.clear();
   if (nodes.size() == 0) {
     return;
@@ -36,8 +39,7 @@ void BVH::potentialIntersections(Ray ray, std::vector<Object *> &out) {
 
     if (n->aabb.intersects(ray)) {
       if (n->is_leaf) {
-        std::copy(n->objects.begin(), n->objects.end(),
-                  std::back_inserter(out));
+        std::copy(n->tris.begin(), n->tris.end(), std::back_inserter(out));
       } else {
         stack.push_back(&nodes[n->left]);
         stack.push_back(&nodes[n->right]);
@@ -55,7 +57,8 @@ size_t absdiff(size_t a, size_t b) {
 }
 
 // TODO: this is pretty inefficient, but it only runs once at the start
-size_t BVH::construct(std::vector<Object *> &&objects) {
+size_t BVH::construct(std::vector<Triangle> &&tris, float start_time,
+                      float end_time) {
   size_t n = objects.size();
   if (n == 0) {
     size_t idx = nodes.size();
@@ -68,9 +71,9 @@ size_t BVH::construct(std::vector<Object *> &&objects) {
   std::vector<glm::vec3> maxs(objects.size());
 
   for (size_t i = 0; i < n; i++) {
-    Object *o = objects[i];
+    auto tri = tris[i];
     AABB obj_aabb =
-        o->transform->totalAABB(o->geometry->aabb(), start_time, end_time);
+        tri.transform().get()->totalAABB(tri.aabb(), start_time, end_time);
     if (i == 0) {
       total = obj_aabb;
     } else {
@@ -81,17 +84,17 @@ size_t BVH::construct(std::vector<Object *> &&objects) {
   }
 
   size_t best_diff = objects.size();
-  std::vector<Object *> best_left{};
-  std::vector<Object *> best_right{};
+  std::vector<Triangle> best_left{};
+  std::vector<Triangle> best_right{};
 
   for (size_t dim = 0; dim < 3; dim++) {
     for (size_t i = 0; i < n; i++) {
       float c_min = mins[i][dim];
       float c_max = maxs[i][dim];
 
-      std::vector<Object *> left;
-      std::vector<Object *> right;
-      std::vector<Object *> mid;
+      std::vector<Triangle> left;
+      std::vector<Triangle> right;
+      std::vector<Triangle> mid;
 
       bool clean_split = true;
 
@@ -100,11 +103,11 @@ size_t BVH::construct(std::vector<Object *> &&objects) {
         float max = maxs[j][dim];
 
         if (max <= c_min) {
-          left.push_back(objects[j]);
+          left.push_back(tris[j]);
         } else if (min >= c_max) {
-          right.push_back(objects[j]);
+          right.push_back(tris[j]);
         } else if (max <= c_max && min >= c_min) {
-          mid.push_back(objects[j]);
+          mid.push_back(tris[j]);
         } else {
           clean_split = false;
           break;
@@ -138,15 +141,11 @@ size_t BVH::construct(std::vector<Object *> &&objects) {
 
   if (best_diff == objects.size()) {
     size_t idx = nodes.size();
-    nodes.push_back(Node{
-        .is_leaf = true,
-        .aabb = total,
-        .objects = objects,
-    });
+    nodes.push_back(Node{.is_leaf = true, .tris = tris, .aabb = total});
     return idx;
   } else {
-    size_t left = construct(std::move(best_left));
-    size_t right = construct(std::move(best_right));
+    size_t left = construct(std::move(best_left), start_time, end_time);
+    size_t right = construct(std::move(best_right), start_time, end_time);
     size_t idx = nodes.size();
     nodes.push_back(Node{
         .is_leaf = false,
@@ -163,8 +162,10 @@ void BVH::dump(std::ostream &out, const Node *node, size_t depth) const {
   if (node->is_leaf) {
     out << space << "- " << VecFmt(node->aabb.pos) << "--"
         << VecFmt(node->aabb.pos + node->aabb.size) << "\n";
-    for (auto o : node->objects) {
-      out << space << "- " << *o << "\n";
+    for (auto tri : node->tris) {
+      auto points = tri.points();
+      out << space << "- Triangle(" << VecFmt(points[0]) << ", "
+          << VecFmt(points[1]) << ", " << VecFmt(points[2]) << ")\n";
     }
   } else {
     out << space << "- " << VecFmt(node->aabb.pos) << "--"

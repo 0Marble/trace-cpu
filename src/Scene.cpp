@@ -1,74 +1,69 @@
 #include "Scene.h"
+#include "DiffuseMaterial.h"
 #include "Light.h"
+#include "Log.h"
+#include "Mesh.h"
+#include "Transform.h"
+#include "glm/ext/matrix_float4x4.hpp"
 #include "glm/geometric.hpp"
 #include <limits>
 #include <memory>
+#include <string_view>
+#include <unordered_map>
 
 #ifdef PARALLEL
 #include <omp.h>
 #endif
 
-Scene::Scene() : objects(), lights() {
-#ifdef PARALLEL
-  cache = std::vector<MatCache>(omp_get_max_threads());
+void Scene::addObject(Object obj) {
+#ifdef USE_BVH
+  bvh.addObject(obj);
 #else
-  cache = {};
+  objects.push_back(obj);
 #endif
 }
 
-void Scene::addObject(Object obj) { objects.push_back(obj); }
-
 void Scene::addLight(std::shared_ptr<Light> light) { lights.push_back(light); }
 
-void Scene::build(float start_time, float end_time) {
+void Scene::startFrame(float start_time, float end_time) {
 #ifdef USE_BVH
-  bvh = BVH(objects, start_time, end_time);
+  bvh.rebuild(start_time, end_time);
 #else
   (void)start_time;
   (void)end_time;
 #endif
 }
 
-void Scene::clearMatCache() {
-#ifdef PARALLEL
-  int thread = omp_get_thread_num();
-  MatCache &cache = this->cache[thread];
-  cache.clear();
-#else
-  cache.clear();
-#endif
-}
+using Cache = std::unordered_map<const Transform *, glm::mat4>;
+static thread_local Cache cache;
 
-std::optional<Scene::Intersection> Scene::intersect(Ray ray) {
+void Scene::clearCache() { cache.clear(); }
+
+std::optional<Intersection> Scene::intersect(Ray ray) {
 
   ray.dir = glm::normalize(ray.dir);
-  std::optional<Scene::Intersection> res = {};
+  std::optional<Intersection> res = {};
   float dist = std::numeric_limits<float>::infinity();
 
-#ifdef PARALLEL
-  int thread = omp_get_thread_num();
-  MatCache &cache = this->cache[thread];
-#else
-  MatCache &cache = this->cache;
-#endif
-
+  static thread_local std::vector<Triangle> tris;
 #ifdef USE_BVH
-  static thread_local std::vector<Object *> objs;
-  bvh.potentialIntersections(ray, objs);
-  for (auto obj : objs) {
+  bvh.potentialIntersections(ray, tris);
+  for (auto tri : tris) {
 #else
   for (auto &obj_ref : objects) {
-    Object *obj = &obj_ref;
+    obj_ref.triangles(tris);
+    for (auto tri : tris) {
 #endif
 
-    auto find = cache.find(obj->transform.get());
+    Transform *transform = tri.transform().get();
+    auto find = cache.find(transform);
     glm::mat4 mat = {};
     if (find != cache.end()) {
       mat = find->second;
     } else {
-      auto transform = obj->transform->sample(ray.time);
-      mat = transform.asInv();
-      cache[obj->transform.get()] = mat;
+      auto it = transform->sample(ray.time);
+      mat = it.asInv();
+      cache[transform] = mat;
     }
 
     Ray r = {
@@ -77,12 +72,19 @@ std::optional<Scene::Intersection> Scene::intersect(Ray ray) {
         .time = ray.time,
     };
 
-    auto col = obj->geometry->intersect(r, dist);
+    auto col = tri.intersect(r, dist);
     if (col) {
-      res = std::make_pair(col.value(), obj);
+      res = col.value();
       dist = col->t;
     }
   }
-
-  return res;
+#ifndef USE_BVH
 }
+#endif
+
+return res;
+}
+
+Scene::Scene(Camera cam)
+    : camera(cam), default_material(std::make_shared<DiffuseMaterial>(
+                       glm::vec3(1.0f, 0.1f, 0.1f))) {}

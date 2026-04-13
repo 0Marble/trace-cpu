@@ -1,44 +1,33 @@
 
 #pragma once
 
-#include "glm/ext/matrix_float4x4.hpp"
-#include <unordered_map>
-#ifdef USE_BVH
 #include "BVH.h"
-#endif
-
-#include "Geometry.h"
+#include "Camera.h"
+#include "Intersection.h"
 #include "Light.h"
+#include "Material.h"
 #include "Object.h"
 #include "Ray.h"
+#include "Triangle.h"
+#include <memory>
 #include <vector>
 
 class Scene {
 #ifdef USE_BVH
-  BVH bvh;
-#endif
-  std::vector<Object> objects;
-
-  // TODO: I seem to recall that std::unordered_map is slow
-  using MatCache = std::unordered_map<const Transform *, glm::mat4>;
-#ifdef PARALLEL
-  std::vector<MatCache> cache;
+  BVH bvh = BVH();
 #else
-  MatCache cache;
+  std::vector<Object> objects = {};
 #endif
 
 public:
-  Scene();
-  // TODO: any better ideas?
-  std::vector<std::shared_ptr<Light>> lights;
+  std::vector<std::shared_ptr<Light>> lights = {};
+  Camera camera;
+  std::shared_ptr<Material> default_material;
 
-  using Intersection = std::pair<Collision, Object *>;
-
-  void addObject(Object);
-  void addLight(std::shared_ptr<Light>);
-  void build(float start_time, float end_time);
-
-  // call at the start of every Raytracer::trace()
-  void clearMatCache();
+  Scene(Camera cam);
+  void addObject(Object object);
+  void addLight(std::shared_ptr<Light> light);
+  void startFrame(float start_time, float end_time);
+  void clearCache();
   std::optional<Intersection> intersect(Ray ray);
 };

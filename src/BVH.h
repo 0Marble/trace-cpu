@@ -1,40 +1,35 @@
 #pragma once
 
-#include "Geometry.h"
+#include "AABB.h"
 #include "Object.h"
-#include "Ray.h"
+#include "Triangle.h"
 #include <ostream>
 #include <vector>
 
 class BVH {
   struct Node {
     bool is_leaf;
+    std::vector<Triangle> tris = {};
     size_t left = 0;
     size_t right = 0;
-    AABB aabb = {};
-    std::vector<Object *> objects = {};
+    AABB aabb = AABB();
   };
 
   std::vector<Object> objects = {};
   std::vector<Node> nodes = {};
-  size_t root;
-  float start_time = 0;
-  float end_time = 0;
+  size_t root = 0;
 
 public:
-  BVH(BVH &&self) = default;
   BVH() = default;
-  BVH(const BVH &) = default;
-  BVH(const std::vector<Object> &objects, float start_time, float end_time);
 
-  BVH &operator=(BVH &&other) = default;
-
-  void potentialIntersections(Ray ray, std::vector<Object *> &out);
+  void addObject(Object obj);
+  void rebuild(float start_time, float end_time);
+  void potentialIntersections(Ray ray, std::vector<Triangle> &tris);
 
   friend std::ostream &operator<<(std::ostream &out, const BVH &bvh);
 
 private:
-  size_t construct(std::vector<Object *> &&objects);
-
+  size_t construct(std::vector<Triangle> &&tris, float start_time,
+                   float end_time);
   void dump(std::ostream &out, const Node *node, size_t depth = 0) const;
 };

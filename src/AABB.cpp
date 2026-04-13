@@ -1,9 +1,5 @@
-#include "Geometry.h"
-#include "Log.h"
+#include "AABB.h"
 #include "Transform.h"
-#include <cmath>
-#include <limits>
-#include <utility>
 
 bool AABB::contains(glm::vec3 point) const {
   bool x = point.x >= pos.x && point.x < pos.x + size.x;
@@ -42,8 +38,6 @@ template <> AABB InstantTransform::apply<AABB>(AABB &aabb) {
   return AABB{.pos = min, .size = max - min};
 }
 
-Geometry::~Geometry() {}
-
 bool AABB::intersects(Ray ray) const {
   float t_min = 0.0f;
   float t_max = std::numeric_limits<float>::infinity();
@@ -65,19 +59,4 @@ bool AABB::intersects(Ray ray) const {
   }
 
   return true;
-}
-
-std::ostream &operator<<(std::ostream &out, Geometry::Type t) {
-  switch (t) {
-  case Geometry::Type::Sphere:
-    out << "Sphere";
-    break;
-  case Geometry::Type::Triangle:
-    out << "Triangle";
-    break;
-  case Geometry::Type::Obj:
-    out << "Obj";
-    break;
-  }
-  return out;
 }

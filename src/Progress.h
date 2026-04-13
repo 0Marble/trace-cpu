@@ -35,7 +35,7 @@ public:
     return t;
   }
 
-  static void end() {
+  static void endGroup() {
     acquire()->endImpl();
     release();
   }

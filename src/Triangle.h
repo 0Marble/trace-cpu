@@ -1,20 +1,28 @@
 #pragma once
 
-#include "Geometry.h"
-#include "glm/fwd.hpp"
-#include <array>
+#include "AABB.h"
+#include "Object.h"
+#include "Ray.h"
+#include "Transform.h"
 #include <glm/glm.hpp>
+#include <memory>
+#include <optional>
 
-class Triangle : public Geometry {
+struct Intersection;
+
+class Triangle {
+  const Object *obj;
+  size_t face;
+
 public:
-  std::array<glm::vec3, 3> points;
+  Triangle(const Object *obj, size_t face);
 
-  Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c);
-
-  AABB aabb() override;
-  std::optional<Collision> intersect(Ray ray, float min_t) override;
-  Type type() const override;
+  AABB aabb() const;
+  std::optional<Intersection> intersect(Ray ray, float min_t) const;
+  std::shared_ptr<Transform> transform() const;
+  std::shared_ptr<Material> material() const;
+  std::array<glm::vec3, 3> points() const;
 
 private:
-  std::optional<glm::vec4> intersectUVWT(Ray ray);
+  std::optional<glm::vec4> intersectUVWT(Ray ray) const;
 };

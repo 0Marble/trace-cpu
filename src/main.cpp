@@ -1,22 +1,11 @@
 #include "Camera.h"
-#include "DiffuseMaterial.h"
+#include "CpuTracer.h"
 #include "Log.h"
-#include "ObjModel.h"
-#include "PointLight.h"
+#include "Mesh.h"
 #include "Random.h"
-#include "Raytracer.h"
 #include "Scene.h"
-#include "Sphere.h"
 #include "Transform.h"
-#include "Triangle.h"
-#include "VecFmt.h"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/ext/quaternion_transform.hpp"
-#include "glm/gtc/constants.hpp"
-#include "glm/gtc/quaternion.hpp"
-#include <cstddef>
 #include <memory>
-#include <vector>
 
 #ifdef PARALLEL
 #include <omp.h>
@@ -31,44 +20,22 @@ int main() {
 
   Random::init(69);
 
-  auto scene = std::make_shared<Scene>();
-
-  auto green = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 1.0, 0.1));
-  auto red = std::make_shared<DiffuseMaterial>(glm::vec3(1.0, 0.5, 0.5));
-  auto blue = std::make_shared<DiffuseMaterial>(glm::vec3(0.1, 0.1, 1.0));
-
-  glm::quat quat_ident = {1, 0, 0, 0};
-  auto model = std::make_shared<InstantTransform>(
-      glm::vec3(0), glm::vec3(1),
-      glm::rotate(quat_ident, glm::two_pi<float>(), glm::vec3(0, 1, 0)));
-
-  auto monkey = std::make_shared<ObjModel>("models/monkey_no_material.obj");
-  scene->addObject(ObjModel::toObject(monkey, "Suzanne", model));
-
-  float light_power = 20.0f;
-  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
-                                               glm::vec3(7, 0, 0)));
-  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
-                                               glm::vec3(0, 0, -7)));
-  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
-                                               glm::vec3(-7, 0, 0)));
-  scene->addLight(std::make_shared<PointLight>(light_power * glm::vec3(1, 1, 1),
-                                               glm::vec3(0, 0, 7)));
-
-  auto rt = std::make_shared<Raytracer>(scene, 3);
-
   auto cam_path = std::make_shared<OrbitTransform>(
-      glm::vec3(0), glm::vec3(0, 0, 3), glm::vec3(0, 1, 0), 1.0f);
-  // auto cam_path =
-  // std::make_shared<InstantTransform>(InstantTransform::lookAt(
-  //     glm::vec3(0, 0, 3), glm::vec3(0), glm::vec3(0, 1, 0)));
+      glm::vec3(0.0f), glm::vec3(0, 0, 3), glm::vec3(0, 1, 0), 1.0f);
+  Camera cam(cam_path);
 
-  Camera cam = Camera(cam_path, std::make_shared<UniformPixelSampler>(4),
-                      Camera::Projection{}, 1000, 1000);
+  Scene s(cam);
 
-  // LOG(LogLevel::LOG_DEBUG, VecFmt(cam.pixel(rt, 0, 64, 65)));
-  // cam.snap(rt).save("image.png");
-  cam.record(rt, "out", 0, 1, 30);
+  Object suz = {
+      .mesh =
+          std::make_shared<Mesh>("models/monkey_no_material.obj", "Suzanne"),
+      .material = s.default_material,
+      .transform = std::make_shared<InstantTransform>(),
+  };
+  s.addObject(suz);
+
+  CpuTracer rt(3, 10);
+  rt.snap(s, 300, 300).save("image.png");
 
   return 0;
 }

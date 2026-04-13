@@ -1,15 +1,34 @@
 #include "Triangle.h"
-#include "Geometry.h"
+#include "Intersection.h"
+#include "Transform.h"
 #include "glm/common.hpp"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include <array>
+#include <memory>
 #include <optional>
 
 static const float epsilon = 1e-5;
 
-Triangle::Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c) : points({a, b, c}) {}
+Triangle::Triangle(const Object *obj, size_t face) : obj(obj), face(face) {}
 
-std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) {
+std::array<glm::vec3, 3> Triangle::points() const {
+  auto idx = obj->mesh->mesh->indices[face].vertex_index;
+  auto a = obj->mesh->mesh->indices[3 * idx + 0].vertex_index;
+  auto b = obj->mesh->mesh->indices[3 * idx + 1].vertex_index;
+  auto c = obj->mesh->mesh->indices[3 * idx + 2].vertex_index;
+  const auto &verts = obj->mesh->file->GetAttrib().vertices;
+
+  return {
+      glm::make_vec3(&verts[3 * a]),
+      glm::make_vec3(&verts[3 * b]),
+      glm::make_vec3(&verts[3 * c]),
+  };
+}
+
+std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) const {
+  auto points = this->points();
   glm::vec3 e1 = points[1] - points[0];
   glm::vec3 e2 = points[2] - points[0];
 
@@ -37,7 +56,7 @@ std::optional<glm::vec4> Triangle::intersectUVWT(Ray ray) {
   }
 }
 
-std::optional<Collision> Triangle::intersect(Ray ray, float min_t) {
+std::optional<Intersection> Triangle::intersect(Ray ray, float min_t) const {
   auto maybe = intersectUVWT(ray);
   if (!maybe)
     return {};
@@ -47,6 +66,7 @@ std::optional<Collision> Triangle::intersect(Ray ray, float min_t) {
   if (uvwt.w > min_t)
     return {};
 
+  auto points = this->points();
   glm::vec3 e1 = points[1] - points[0];
   glm::vec3 e2 = points[2] - points[0];
   glm::vec3 n = glm::normalize(glm::cross(e1, e2));
@@ -54,17 +74,17 @@ std::optional<Collision> Triangle::intersect(Ray ray, float min_t) {
     n *= -1;
   }
 
-  return (Collision){
+  return Intersection{
       .ray = ray,
-      .t = uvwt.w,
-      .uv = glm::vec2(uvwt.x, uvwt.y),
-      .normal = n,
-      .tangent = glm::normalize(e1),
-      .pos = uvwt.z * points[0] + uvwt.x * points[1] + uvwt.y * points[2],
+      .t = uvwt[3],
+      .uv = glm::vec2(uvwt),
+      .n2o = glm::mat3(e1, e2, n),
+      .tri = *this,
   };
 }
 
-AABB Triangle::aabb() {
+AABB Triangle::aabb() const {
+  auto points = this->points();
   glm::vec3 min = points[0];
   glm::vec3 max = points[0];
 
@@ -82,4 +102,8 @@ AABB Triangle::aabb() {
   return AABB{.pos = min, .size = size};
 }
 
-Geometry::Type Triangle::type() const { return Type::Triangle; }
+std::shared_ptr<Transform> Triangle::transform() const {
+  return obj->transform;
+}
+
+std::shared_ptr<Material> Triangle::material() const { return obj->material; }
